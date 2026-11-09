@@ -194,6 +194,14 @@
   function renderSetTools() {
     var s = cfg.sets[cur.set];
     var sp = document.querySelector('.set-profiles'); if (sp) sp.remove();
+    var sa = document.querySelector('.set-apps'); if (sa) sa.remove();
+    var appsIn = h('input', { type: 'text', list: 'dl-apps', placeholder: 'ex. Visual Studio Code, Figma, docs.google.com' });
+    appsIn.value = (s.apps || []).join(', ');
+    appsIn.addEventListener('input', function () {
+      var v = appsIn.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+      if (v.length) s.apps = v; else delete s.apps; changed(false);
+    });
+    $('set-tools').after(h('label', { class: 'set-apps' }, ['Afișează automat acest set când e activă aplicația (sau site-ul din Chrome), separate prin virgulă:', appsIn]));
     if ((cfg.profiles || []).length) {
       var box = h('div', { class: 'set-profiles' }, ['Vizibil în profilurile:']);
       cfg.profiles.forEach(function (p) {
@@ -379,7 +387,10 @@
       var p = cfg.pages[k]; return [k, p.title + (p.phase ? ' (controale în etapa ' + p.phase + ')' : '')];
     }));
     box.appendChild(h('fieldset', {}, [h('legend', { text: 'Pe iPhone' }),
-      field('Pagină dedicată deschisă la tap', selectInput(pages, b.page || '', function (v) { if (v) b.page = v; else delete b.page; changed(false); })),
+      field('Pagină dedicată deschisă la tap', selectInput(pages, b.page || '', function (v) { if (v) b.page = v; else delete b.page; changed(true); })),
+      b.page ? (function () { var c = h('input', { type: 'checkbox' }); c.checked = b.auto_page !== false;
+        c.addEventListener('change', function () { if (c.checked) delete b.auto_page; else b.auto_page = false; changed(false); });
+        return h('label', { class: 'check' }, [c, 'Deschide pagina automat când aplicația / site-ul e activ pe Mac']); })() : null,
       field('Starea afișată pe buton (verde când e activ)', selectInput(TOGGLES, b.state || '', function (v) { if (v) b.state = v; else delete b.state; changed(false); })),
       field('Text / imagine dinamică pe buton', selectInput(DYNAMICS, b.dynamic || '', function (v) { if (v) b.dynamic = v; else delete b.dynamic; changed(false); })),
     ]));
@@ -589,6 +600,7 @@
   $('open-settings').addEventListener('click', function () {
     $('s-cols').value = cfg.ui.columns; $('s-rows').value = cfg.ui.rows; $('s-sleep').value = cfg.ui.sleep_minutes;
     $('s-sound').checked = cfg.ui.sound !== false; $('s-haptics').checked = cfg.ui.haptics !== false;
+    $('s-auto').checked = cfg.ui.auto_switch !== false; $('s-autoclose').checked = cfg.ui.auto_close !== false;
     $('settings').showModal();
   });
   $('settings').addEventListener('close', function () {
@@ -598,6 +610,7 @@
     cfg.ui.rows = clamp($('s-rows').value, 1, 6, 3);
     cfg.ui.sleep_minutes = clamp($('s-sleep').value, 1, 240, 5);
     cfg.ui.sound = $('s-sound').checked; cfg.ui.haptics = $('s-haptics').checked;
+    cfg.ui.auto_switch = $('s-auto').checked; cfg.ui.auto_close = $('s-autoclose').checked;
     normalize(); cur.slot = null; changed(true);
   });
   $('export').addEventListener('click', function () {

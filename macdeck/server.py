@@ -333,6 +333,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, {"ok": True})
             if path == "/api/admin/icon":
                 return self._json(200, {"ok": True, "file": admin.save_icon(body.get("id"), body.get("data"))})
+            if path == "/api/admin/simfront" and system.SIM:
+                DECK.features._sim_front = body.get("app")
+                return self._json(200, {"ok": True})
             if path == "/api/admin/uidump":
                 return self._json(200, {"ok": True, "items": uiauto.dump(body.get("app") or "")})
             if path == "/api/admin/test":

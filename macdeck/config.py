@@ -159,6 +159,8 @@ DEFAULT_CONFIG = {
         "sound": True,
         "haptics": True,
         "profile": "auto",
+        "auto_switch": True,
+        "auto_close": True,
     },
     "sets": [
         {

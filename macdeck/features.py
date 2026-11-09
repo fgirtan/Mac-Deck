@@ -14,7 +14,7 @@ from urllib.parse import quote, urlsplit
 
 from . import chrome, ics, uiauto
 from .monitor import MONITOR
-from .system import SCRIPTS, SIM, log_sim, osa, run
+from .system import SCRIPTS, SIM, log_sim, osa, osa_file, run
 
 MEET_CALL_RE = re.compile(r"https://meet\.google\.com/[a-z]{3}-[a-z]{4}-[a-z]{3}")
 SF_APP = "Screaming Frog SEO Spider"
@@ -84,6 +84,13 @@ def _bin(paths):
     return shutil.which(os.path.basename(paths[0]))
 
 
+def osa_file_safe(name):
+    try:
+        return osa_file(name, timeout=4)
+    except RuntimeError:
+        return ""
+
+
 class Features:
     def __init__(self, deck):
         self.deck = deck
@@ -97,6 +104,7 @@ class Features:
         self._ics_text = None
         self._ics_fetched = 0
         self._mg_cache = (0, None)
+        self._sim_front = None
 
     # ---------------------------------------------------------------- utilitare
     def cfg(self):
@@ -124,11 +132,79 @@ class Features:
 
     # ---------------------------------------------------------------- fire de fundal
     def start(self):
-        for target in (self._fast_loop, self._slow_loop, self._timer_loop):
+        for target in (self._fast_loop, self._slow_loop, self._timer_loop, self._front_loop):
             threading.Thread(target=target, daemon=True).start()
 
     def _active(self):
         return self.deck.hub.count() > 0
+
+    # ---------------------------------------------------------------- aplicația din față -> deck
+    def front_app(self):
+        """Numele aplicației active pe Mac și, pentru Chrome, URL-ul tab-ului activ."""
+        if SIM:
+            return self._sim_front, None
+        asn = run(["lsappinfo", "front"], check=False).strip()
+        if not asn:
+            return None, None
+        out = run(["lsappinfo", "info", "-only", "name", asn], check=False)
+        m = re.search(r'"LSDisplayName"="(.*)"', out)
+        name = m.group(1) if m else None
+        url = None
+        if name == "Google Chrome":
+            url = osa_file_safe("chrome_active.applescript") or None
+        return name, url
+
+    def auto_target(self, app, url):
+        """Ce trebuie afișat pe deck pentru aplicația/URL-ul activ: (pagină, index set)."""
+        cfg = self.cfg()
+        page = None
+        for s in cfg.get("sets", []):
+            for b in s.get("buttons", []):
+                if not b or not b.get("page") or b.get("auto_page") is False or b.get("page") == "meet":
+                    continue
+                a = b.get("action") or {}
+                if a.get("type") == "app" and app and a.get("app", "").lower() == app.lower():
+                    page = b["page"]
+                elif a.get("type") == "chrome" and url:
+                    host = urlsplit(a.get("url", "")).netloc
+                    if (a.get("match") and a["match"] in url) or (host and "://" + host in url):
+                        page = b["page"]
+                if page:
+                    break
+            if page:
+                break
+        set_idx = None
+        for i, s in enumerate(cfg.get("sets", [])):
+            for entry in s.get("apps") or []:
+                e = entry.strip().lower()
+                if e and ((app and e == app.lower()) or (url and e in url.lower())):
+                    set_idx = i
+                    break
+            if set_idx is not None:
+                break
+        return page, set_idx
+
+    def _front_loop(self):
+        last = None
+        while True:
+            time.sleep(1)
+            ui = self.cfg().get("ui") or {}
+            if not self._active() or ui.get("auto_switch") is False:
+                last = None
+                continue
+            try:
+                app, url = self.front_app()
+            except Exception:
+                continue
+            if not app or app in ("loginwindow", "ScreenSaverEngine"):
+                continue
+            page, set_idx = self.auto_target(app, url)
+            key = (app, page, set_idx)
+            if key == last:
+                continue
+            last = key
+            self.event(type="auto", app=app, page=page, set=set_idx,
+                       close=ui.get("auto_close", True))
 
     def _fast_loop(self):
         while True:

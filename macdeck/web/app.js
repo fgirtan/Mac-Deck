@@ -60,6 +60,7 @@
       else if (m.type === 'toast') toast(m.msg);
       else if (m.type === 'open-page') { var pb = cfg && findButtonByPage(m.page); if (pb && ui.page !== m.page) { if (ui.page) closePage(ui.page); openPage(pb); } }
       else if (m.type === 'close-page') { if (ui.page === m.page) closePage(m.page); }
+      else if (m.type === 'auto') autoSwitch(m);
     };
   }
 
@@ -380,6 +381,32 @@
     });
     if (live.hint && live.hint !== shownHint) { shownHint = live.hint; toast(live.hint, true); }
     $('sleep-info').textContent = state.volume == null ? '' : 'Volum ' + state.volume + '%';
+  }
+
+  // ---------------------------------------------------------------- comutare automată după aplicația activă
+  var autoState = null;   // ce a deschis automat deck-ul: { page | set, homeSet }
+  function goSet(i) {
+    var vis = visibleSets(), idx = vis.indexOf(cfg.sets[i]);
+    if (idx < 0) return;
+    var s = $('sets'); ui.set = idx; s.scrollTo({ left: idx * s.clientWidth, behavior: 'smooth' }); updateDots(); store.set('macdeck.ui', ui);
+  }
+  function autoSwitch(m) {
+    if (!cfg || sleeping) return;
+    var home = autoState ? autoState.homeSet : ui.set;
+    if (m.page) {
+      var pb = findButtonByPage(m.page);
+      if (!pb) return;
+      if (ui.page !== m.page) { if (ui.page) closePage(ui.page); openPage(pb); }
+      autoState = { page: m.page, homeSet: home };
+    } else if (m.set != null) {
+      if (ui.page) closePage(ui.page);
+      goSet(m.set);
+      autoState = { set: m.set, homeSet: home };
+    } else if (autoState && m.close) {
+      if (autoState.page && ui.page === autoState.page) closePage(autoState.page);
+      if (autoState.set != null) { var s = $('sets'); ui.set = autoState.homeSet || 0; s.scrollTo({ left: ui.set * s.clientWidth, behavior: 'smooth' }); updateDots(); }
+      autoState = null;
+    }
   }
 
   var shownHint = null;

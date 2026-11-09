@@ -134,6 +134,16 @@ Celelalte tab-uri ale configuratorului:
 
 Configurația se află în `~/.macdeck/config.json` și poate fi editată și manual. Modificările din fișier se preiau automat. La actualizarea proiectului, configurația existentă primește automat butoanele noi, iar modificările tale se păstrează.
 
+## Comutare automată după aplicația activă
+
+Când schimbi aplicația pe Mac, deck-ul se schimbă singur:
+
+- **Aplicații și site-uri cu pagină dedicată** (Spotify, Claude, Screaming Frog, MeetGeek, Activity Monitor etc.): se deschide pagina lor. Pentru site-uri contează tab-ul activ din Chrome.
+- **Orice altă aplicație:** creezi un set cu butoanele ei (de ex. scurtături pentru VS Code, Figma sau Google Docs). Apoi, în configurator → Butoane, sub numele setului, completezi **„Afișează automat acest set când e activă aplicația”** (ex. `Visual Studio Code` sau `docs.google.com`). Deck-ul sare pe acel set când aplicația e în față.
+- **Aplicațiile fără pagină sau set:** deck-ul revine unde erai înainte.
+
+Comportamentul se poate opri din configurator → **Setări**, la nivel general, sau pe fiecare buton (bifa „Deschide pagina automat…”). Google Meet se deschide doar când ești într-un apel, nu și pe pagina de start Meet.
+
 ## Ce face fiecare pagină
 
 | Pagină | Conținut |
