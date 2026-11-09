@@ -31,6 +31,15 @@ Ai nevoie doar de Python 3, care vine cu Command Line Tools de la Apple. Dacă n
    ```
 3. În Terminal apar adresa pentru iPhone și **codul de asociere** (6 cifre).
 
+Mai simplu: în Finder, dă **dublu-click pe `Porneste Mac Deck.command`** din folderul `mac-deck`. Se deschide Terminal cu serverul pornit, iar după 2 secunde configuratorul se deschide în browser. Fereastra Terminal trebuie să rămână deschisă cât folosești deck-ul.
+
+### Dacă `localhost` nu se găsește
+
+- Serverul trebuie să **ruleze**: în Terminal trebuie să vezi caseta „Mac Deck pornit”. Dacă ai închis fereastra Terminal sau ai apăsat Ctrl+C, pornește-l din nou.
+- `localhost` funcționează **doar pe Mac**. Pe iPhone folosește adresa `.local` sau IP-ul afișat în Terminal.
+- Încearcă și `http://127.0.0.1:8765/config`.
+- Dacă Terminal afișează `Address already in use`, portul e ocupat (de ex. de prototipul vechi `deck_test.py`). Află ce îl ocupă cu `lsof -i :8765`, apoi închide procesul cu `kill <PID>`.
+
 Pentru actualizări: `cd ~/mac-deck && git pull`, apoi repornește serverul (Ctrl+C și din nou comanda de mai sus).
 
 ### Permisiuni macOS (o singură dată)
