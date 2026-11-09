@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Mac Deck · Instalare</title>
+<style>
+  :root { --green: #30d158; --dim: #7d8f82; --line: #1c2b20; }
+  body { margin: 0; background: #000; color: #e9f5ec; font: 16px/1.5 -apple-system, system-ui, sans-serif;
+    padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 40px max(20px, env(safe-area-inset-left)); }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.lead { color: var(--dim); margin: 0 0 24px; }
+  ol { padding-left: 0; list-style: none; counter-reset: s; margin: 0; }
+  li { counter-increment: s; border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px 14px 56px; margin-bottom: 12px; position: relative; background: #0b0f0c; }
+  li::before { content: counter(s); position: absolute; left: 16px; top: 14px; width: 26px; height: 26px; border-radius: 50%; background: #0f2a17; color: var(--green); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  b { color: var(--green); font-weight: 600; }
+  a.btn { display: inline-block; margin-top: 8px; background: var(--green); color: #000; text-decoration: none; font-weight: 600; padding: 10px 16px; border-radius: 12px; }
+  small { color: var(--dim); }
+  code { background: #0f2a17; padding: 1px 6px; border-radius: 6px; font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Instalare pe iPhone</h1>
+  <p class="lead">Se face o singură dată. Certificatul permite conexiunea HTTPS cu Mac-ul, de care e nevoie ca ecranul să rămână aprins.</p>
+  <ol>
+    <li>Descarcă certificatul Mac-ului.<br><a class="btn" href="/ca.crt">Descarcă certificatul</a><br><small>Safari întreabă dacă permiți descărcarea unui profil: alege <b>Allow</b>.</small></li>
+    <li>Deschide <b>Settings</b>. Sus apare <b>Profile Downloaded</b>. Intră acolo și apasă <b>Install</b> (de câteva ori, confirmând cu codul telefonului).</li>
+    <li>Mergi la <b>Settings → General → About → Certificate Trust Settings</b> și activează <b>Mac Deck Local CA</b>.</li>
+    <li>Deschide deck-ul prin HTTPS:<br><a class="btn" id="go" href="#">Deschide deck-ul</a></li>
+    <li>În Safari apasă <b>Share → Add to Home Screen</b>. De acum îl pornești de pe ecranul principal, ca pe o aplicație.</li>
+    <li>Ca protecție suplimentară: <b>Settings → Display &amp; Brightness → Auto-Lock → Never</b>. Oprește și <b>Portrait Orientation Lock</b> din Control Center, ca deck-ul să stea orizontal.</li>
+  </ol>
+  <p><small>Codul de asociere de 6 cifre apare în Terminal, pe Mac.</small></p>
+</main>
+<script>
+  var go = document.getElementById('go');
+  go.href = 'https://' + location.hostname + ':' + (Number(location.port || 80) + 1) + '/';
+</script>
+</body>
+</html>

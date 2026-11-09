@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deck">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/app.css">
+<title>Mac Deck</title>
+</head>
+<body>
+  <main id="main">
+    <section id="deck">
+      <div id="sets"></div>
+      <footer id="bar">
+        <span id="dots"></span>
+        <span id="status"><span id="awake" title="Ecran ținut aprins"></span><span id="dot" class="dot"></span></span>
+      </footer>
+      <div id="pages"></div>
+    </section>
+    <aside id="sliders">
+      <div class="slider" id="vol">
+        <div class="track"><div class="fill"></div><div class="val">–</div></div>
+        <button class="sicon" id="vol-icon" aria-label="Mute"></button>
+      </div>
+      <div class="slider" id="bri">
+        <div class="track"><div class="fill"></div><div class="val">–</div></div>
+        <button class="sicon" id="bri-icon" aria-label="Luminozitate" tabindex="-1"></button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- alegere (ex. prompturile pentru Planificare) -->
+  <div id="sheet" class="overlay hidden"><div class="sheet-box"><h2 id="sheet-title"></h2><div id="sheet-opts"></div><button id="sheet-cancel" class="ghost">Anulează</button></div></div>
+
+  <!-- asociere cu Mac-ul -->
+  <div id="pair" class="overlay hidden">
+    <div class="pair-box">
+      <h1>Asociază cu Mac-ul</h1>
+      <p>Introdu codul de 6 cifre afișat în Terminal, pe Mac.</p>
+      <input id="pair-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="••••••">
+      <p id="pair-err" class="err"></p>
+    </div>
+  </div>
+
+  <div id="sleep" class="overlay hidden"><div id="sleep-inner"><div id="sleep-clock"></div><div id="sleep-info"></div></div></div>
+  <div id="rotate" class="overlay"><div></div><p>Rotește telefonul în orizontal</p><small>și oprește „Portrait Orientation Lock” din Control Center</small></div>
+  <div id="toast"></div>
+
+  <label id="haptic" aria-hidden="true"><input type="checkbox" switch></label>
+  <video id="nosleep" src="/nosleep.mp4" muted playsinline loop preload="auto"></video>
+
+  <script src="/glyphs.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

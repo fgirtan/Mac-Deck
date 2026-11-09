@@ -15,7 +15,7 @@ Telefonul (iPhone 13 mini) devine un deck de control pentru Mac, asemănător cu
 | **Configurator** | Pagină web pe Mac: `http://localhost:8765/config` | Editezi butoane, pagini, iconițe, acțiuni |
 | **Configurație** | `~/.macdeck/config.json` | Totul se salvează aici; iPhone-ul se actualizează pe loc |
 
-Comunicarea se face prin rețeaua Wi-Fi locală (WebSocket), fără internet și fără hosting. iPhone-ul se asociază o singură dată cu Mac-ul printr-un cod, ca să nu poată controla altcineva din rețea.
+Comunicarea se face prin rețeaua Wi-Fi locală (HTTP + Server-Sent Events pentru starea în timp real), fără internet și fără hosting. iPhone-ul se asociază o singură dată cu Mac-ul printr-un cod, ca să nu poată controla altcineva din rețea.
 
 ### Permisiuni necesare pe Mac (o singură dată)
 - **Accessibility**: pentru scurtături de tastatură și clicuri în aplicații (Screaming Frog, MeetGeek).
