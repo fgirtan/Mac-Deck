@@ -83,7 +83,7 @@ Cu serverul pornit, deschide pe Mac **http://localhost:8765/config**. Pagina se 
 | Site în Chrome | deschide adresa; dacă un tab o conține deja, sare la el |
 | Site în browserul implicit | `open URL` |
 | Fereastră Chrome cu profil | Chrome cu profilul unui cont (ex. fgirtan@gmail.com) |
-| Scurtătură de tastatură | ex. `cmd+shift+f`, `ctrl+``, opțional către o anumită aplicație. Necesită permisiunea Accessibility. |
+| Scurtătură de tastatură | ex. `cmd+shift+f`, `` ctrl+` ``, opțional către o anumită aplicație. Necesită permisiunea Accessibility. |
 | Claude + prompt | unul sau mai multe prompturi la alegere. Trimiterea automată vine în etapa 4. |
 | Shortcut | rulează un shortcut din aplicația Shortcuts |
 | AppleScript / Comandă shell | orice script, pentru cazuri speciale |
