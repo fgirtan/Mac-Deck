@@ -108,6 +108,68 @@ def do_caffeinate(a, ctx):
     return msg
 
 
+def do_url(a, ctx):
+    run(["open", a["url"]])
+    return "Deschis în browser"
+
+
+# Taste speciale -> key code (System Events)
+KEY_CODES = {
+    "return": 36, "enter": 76, "tab": 48, "space": 49, "delete": 51, "backspace": 51, "esc": 53, "escape": 53,
+    "left": 123, "right": 124, "down": 125, "up": 126, "home": 115, "end": 119, "pageup": 116, "pagedown": 121,
+    "forwarddelete": 117,
+    "f1": 122, "f2": 120, "f3": 99, "f4": 118, "f5": 96, "f6": 97, "f7": 98, "f8": 100, "f9": 101,
+    "f10": 109, "f11": 103, "f12": 111,
+}
+MODS = {"cmd": "command down", "command": "command down", "⌘": "command down",
+        "shift": "shift down", "⇧": "shift down",
+        "alt": "option down", "opt": "option down", "option": "option down", "⌥": "option down",
+        "ctrl": "control down", "control": "control down", "⌃": "control down"}
+
+
+def keystroke_script(combo):
+    """'cmd+shift+f' -> comanda AppleScript pentru System Events."""
+    parts = [p.strip().lower() for p in combo.replace(" ", "").split("+") if p.strip()]
+    if not parts:
+        raise ValueError("scurtătură goală")
+    key, mods = parts[-1], []
+    for m in parts[:-1]:
+        if m not in MODS:
+            raise ValueError("modificator necunoscut: %s" % m)
+        mods.append(MODS[m])
+    using = (" using {%s}" % ", ".join(mods)) if mods else ""
+    if key in KEY_CODES:
+        return "key code %d%s" % (KEY_CODES[key], using)
+    if len(key) != 1:
+        raise ValueError("tastă necunoscută: %s" % key)
+    return 'keystroke "%s"%s' % (key.replace("\\", "\\\\").replace('"', '\\"'), using)
+
+
+def do_keys(a, ctx):
+    lines = []
+    if a.get("app"):
+        lines.append('tell application "%s" to activate' % a["app"].replace('"', ''))
+        lines.append("delay 0.25")
+    lines.append('tell application "System Events" to ' + keystroke_script(a["keys"]))
+    osa(*lines)
+    return a["keys"]
+
+
+def do_applescript(a, ctx):
+    out = osa(a["script"], timeout=30)
+    return (out[:80] if out else "AppleScript rulat")
+
+
+def do_shell(a, ctx):
+    out = run(["/bin/bash", "-lc", a["command"]], timeout=60)
+    return (out.splitlines()[-1][:80] if out else "Comandă rulată")
+
+
+def do_shortcut(a, ctx):
+    run(["shortcuts", "run", a["name"]], timeout=120)
+    return "Shortcut: " + a["name"]
+
+
 def do_claude(a, ctx):
     raise Soon(4)
 
@@ -120,6 +182,11 @@ HANDLERS = {
     "app": do_app,
     "chrome": do_chrome,
     "chrome_profile": do_chrome_profile,
+    "url": do_url,
+    "keys": do_keys,
+    "applescript": do_applescript,
+    "shell": do_shell,
+    "shortcut": do_shortcut,
     "lock": do_lock,
     "display_sleep": do_display_sleep,
     "screenshot": do_screenshot,

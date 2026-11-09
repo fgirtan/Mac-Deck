@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/config.css">
+<title>Configurator Mac Deck</title>
+</head>
+<body>
+<header id="top">
+  <div class="brand"><img src="/apple-touch-icon.png" alt=""><b>Mac Deck</b><span>Configurator</span></div>
+  <div id="save-state" class="muted">Se încarcă…</div>
+  <div class="actions">
+    <button id="undo" class="btn" title="Anulează ultima modificare (⌘Z)" disabled>↶ Anulează</button>
+    <button id="open-settings" class="btn">Setări</button>
+    <button id="export" class="btn">Export</button>
+    <label class="btn">Import<input type="file" id="import" accept=".json,application/json" hidden></label>
+  </div>
+</header>
+
+<main>
+  <section id="left">
+    <nav id="tabs"></nav>
+    <div id="set-tools">
+      <label class="setname">Nume set <input id="set-name" type="text"></label>
+      <div class="spacer"></div>
+      <button id="set-left" class="btn small" title="Mută setul la stânga">◀</button>
+      <button id="set-right" class="btn small" title="Mută setul la dreapta">▶</button>
+      <button id="set-delete" class="btn small danger">Șterge setul</button>
+    </div>
+    <div id="grid"></div>
+    <p class="hint">Click pe un buton ca să-l editezi, click pe un loc gol ca să adaugi unul. Trage butoanele ca să le muți; trage peste un tab ca să le muți în alt set.</p>
+
+    <div id="preview">
+      <div class="preview-head"><h3>Previzualizare iPhone</h3><span class="muted">modificările ajung pe telefon automat</span></div>
+      <div id="phone"><iframe id="frame" src="/" title="Previzualizare deck"></iframe></div>
+    </div>
+  </section>
+
+  <aside id="inspector"><div class="empty-state">Selectează un buton din grilă.</div></aside>
+</main>
+
+<dialog id="settings">
+  <form method="dialog">
+    <h2>Setări deck</h2>
+    <div class="row2">
+      <label>Coloane <input id="s-cols" type="number" min="2" max="8"></label>
+      <label>Rânduri <input id="s-rows" type="number" min="1" max="6"></label>
+    </div>
+    <label>Mod repaus după (minute fără atingere) <input id="s-sleep" type="number" min="1" max="240"></label>
+    <label class="check"><input id="s-sound" type="checkbox"> Sunet la apăsare</label>
+    <label class="check"><input id="s-haptics" type="checkbox"> Vibrație la apăsare (iOS 18+)</label>
+    <p class="muted small">Dacă micșorezi grila, butoanele care nu mai încap rămân salvate, dar nu se afișează.</p>
+    <div class="dialog-actions"><button class="btn" value="cancel">Închide</button><button class="btn primary" id="s-save" value="ok">Aplică</button></div>
+  </form>
+</dialog>
+
+<datalist id="dl-apps"></datalist>
+<datalist id="dl-shortcuts"></datalist>
+<datalist id="dl-profiles"></datalist>
+<div id="toast"></div>
+
+<script src="/glyphs.js"></script>
+<script src="/config.js"></script>
+</body>
+</html>

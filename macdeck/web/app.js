@@ -89,7 +89,13 @@
     var ic = b.icon || {};
     if (ic.type === 'glyph') return glyph(ic.name);
     if (ic.type === 'emoji') return '<span style="font-size:30px">' + ic.value + '</span>';
-    return '<img src="/icons/' + encodeURIComponent(b.id) + '.png" alt="" data-letter="' + (b.label || '?').charAt(0) + '">';
+    return '<img src="/icons/' + encodeURIComponent(b.id) + '.png?v=' + iconVersion(b) + '" alt="" data-letter="' + (b.label || '?').charAt(0) + '">';
+  }
+
+  function iconVersion(b) {
+    var str = JSON.stringify(b.icon || b.action || {}), h = 0;
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(36);
   }
 
   function render() {
@@ -134,7 +140,7 @@
   function findButtonByPage(p) {
     for (var i = 0; i < cfg.sets.length; i++)
       for (var j = 0; j < cfg.sets[i].buttons.length; j++)
-        if (cfg.sets[i].buttons[j].page === p) return cfg.sets[i].buttons[j];
+        if (cfg.sets[i].buttons[j] && cfg.sets[i].buttons[j].page === p) return cfg.sets[i].buttons[j];
     return null;
   }
 
@@ -322,7 +328,7 @@
     var t = state.toggles || {};
     if (cfg) cfg.sets.forEach(function (set) {
       set.buttons.forEach(function (b) {
-        if (b.state && keyEls[b.id]) keyEls[b.id].classList.toggle('on', !!t[b.state]);
+        if (b && b.state && keyEls[b.id]) keyEls[b.id].classList.toggle('on', !!t[b.state]);
       });
     });
     $('sleep-info').textContent = state.volume == null ? '' : 'Volum ' + state.volume + '%';
@@ -415,6 +421,13 @@
     if (!e.target.closest('#sets')) e.preventDefault();
   }, { passive: false });
   document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+
+  // previzualizarea din configurator arată setul editat
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || !e.data || e.data.type !== 'show-set') return;
+    var s = $('sets');
+    ui.set = e.data.index; s.scrollTo({ left: ui.set * s.clientWidth, behavior: 'smooth' }); updateDots();
+  });
 
   $('rotate').querySelector('div').innerHTML = glyph('rotate');
   boot();

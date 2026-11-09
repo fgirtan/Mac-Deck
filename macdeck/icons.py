@@ -100,6 +100,10 @@ def icon_source(button):
 
 def icon_path(button):
     """Calea către PNG-ul iconiței (îl creează la prima cerere) sau None."""
+    icon = button.get("icon") or {}
+    if icon.get("type") == "image":
+        p = os.path.join(ICON_DIR, os.path.basename(icon.get("file", "")))
+        return p if icon.get("file") and os.path.exists(p) else None
     src = icon_source(button)
     if not src or SIM and src[0] == "app":
         return None

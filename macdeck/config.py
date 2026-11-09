@@ -177,7 +177,7 @@ class Config:
     def find_button(self, button_id):
         for s in self.get().get("sets", []):
             for b in s.get("buttons", []):
-                if b.get("id") == button_id:
+                if b and b.get("id") == button_id:
                     return b
         return None
 

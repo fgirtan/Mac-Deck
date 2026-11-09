@@ -10,7 +10,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
-from . import actions, certs, icons, system
+from . import actions, admin, certs, icons, system
 from .config import HOME, Config
 
 WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
@@ -23,6 +23,8 @@ STATIC = {
     "/app.css": ("app.css", "text/css"),
     "/glyphs.js": ("glyphs.js", "application/javascript"),
     "/setup": ("setup.html", "text/html"),
+    "/config.js": ("config.js", "application/javascript"),
+    "/config.css": ("config.css", "text/css"),
     "/nosleep.mp4": ("nosleep.mp4", "video/mp4"),
     "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"),
 }
@@ -200,6 +202,11 @@ class Handler(BaseHTTPRequestHandler):
             name, ctype = STATIC[path]
             with open(os.path.join(WEB, name), "rb") as f:
                 return self._send(200, f.read(), ctype)
+        if path in ("/config", "/config/"):
+            if not self._is_local():
+                return self._send(403, "Configuratorul se deschide doar pe Mac: http://localhost:8765/config", "text/plain")
+            with open(os.path.join(WEB, "config.html"), "rb") as f:
+                return self._send(200, f.read(), "text/html")
         if path == "/apple-touch-icon.png":
             return self._send(200, icons.app_icon_png(), "image/png",
                               {"Cache-Control": "max-age=86400"})
@@ -212,8 +219,11 @@ class Handler(BaseHTTPRequestHandler):
             p = icons.icon_path(b) if b else None
             if not p:
                 return self._send(404, b"", "image/png")
+            ext = os.path.splitext(p)[1].lower()
+            ctype = {".jpg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif",
+                     ".svg": "image/svg+xml"}.get(ext, "image/png")
             with open(p, "rb") as f:
-                return self._send(200, f.read(), "image/png", {"Cache-Control": "max-age=3600"})
+                return self._send(200, f.read(), ctype, {"Cache-Control": "max-age=86400"})
 
         if not path.startswith("/api/"):
             return self._json(404, {"error": "not found"})
@@ -225,6 +235,8 @@ class Handler(BaseHTTPRequestHandler):
                                     "sim": system.SIM})
         if path == "/api/events":
             return self._events()
+        if path == "/api/admin/meta" and self._is_local():
+            return self._json(200, admin.meta())
         return self._json(404, {"error": "not found"})
 
     def _events(self):
@@ -265,6 +277,10 @@ class Handler(BaseHTTPRequestHandler):
 
         if not self._authed(query):
             return self._json(401, {"error": "neasociat"})
+        if path.startswith("/api/admin/"):
+            if not self._is_local():
+                return self._json(403, {"error": "doar de pe Mac"})
+            return self._admin(path, body)
         try:
             if path == "/api/action":
                 return self._json(200, DECK.run_button(body.get("id"), bool(body.get("long")),
@@ -278,6 +294,29 @@ class Handler(BaseHTTPRequestHandler):
                     system.set_brightness(body["brightness"])
                 DECK.push_state(force=True)
                 return self._json(200, {"ok": True})
+        except Exception as e:
+            return self._json(200, {"ok": False, "msg": str(e)})
+        return self._json(404, {"error": "not found"})
+
+
+    def _admin(self, path, body):
+        try:
+            if path == "/api/admin/config":
+                cfg = body.get("config")
+                errs = admin.validate(cfg)
+                if errs:
+                    return self._json(200, {"ok": False, "errors": errs})
+                DECK.config.save(cfg)
+                DECK.hub.send({"type": "config"})
+                return self._json(200, {"ok": True})
+            if path == "/api/admin/icon":
+                return self._json(200, {"ok": True, "file": admin.save_icon(body.get("id"), body.get("data"))})
+            if path == "/api/admin/test":
+                ctx = {"state_changed": lambda: DECK.push_state(force=True)}
+                try:
+                    return self._json(200, {"ok": True, "msg": actions.execute(body.get("action") or {}, ctx)})
+                except actions.Soon as e:
+                    return self._json(200, {"ok": False, "msg": "Vine în etapa %s" % e.phase})
         except Exception as e:
             return self._json(200, {"ok": False, "msg": str(e)})
         return self._json(404, {"error": "not found"})
@@ -326,6 +365,7 @@ def serve(http_port=8765, https_port=8766):
         print("  │  Pe iPhone deschide:   http://%s:%d" % (host, http_port))
     print("  │")
     print("  │  Cod de asociere:  %s" % DECK.auth.code)
+    print("  │  Configurator:     http://localhost:%d/config" % http_port)
     print("  │  Configurație:     %s" % DECK.config.path)
     print("  └─ Ctrl+C pentru oprire")
     print()
