@@ -31,6 +31,18 @@
     ['display_sleep', 'Stinge ecranul'],
     ['screenshot', 'Screenshot'],
     ['caffeinate', 'Ține Mac-ul treaz (comutator)'],
+    ['sequence', 'Macro: mai mulți pași la rând'],
+    ['page', 'Doar deschide pagina dedicată'],
+    ['spotify', 'Spotify: comandă'],
+    ['meet', 'Google Meet: comandă'],
+    ['timer', 'Pomodoro: comandă'],
+    ['next_meeting', 'Intră în următorul meeting'],
+    ['crawl_current', 'Crawl site-ul din tab-ul curent'],
+    ['mic_mute', 'Microfon on/off (tot sistemul)'],
+    ['focus', 'Focus / Nu deranja on/off'],
+    ['window', 'Mută fereastra din față'],
+    ['snippet', 'Lipește un text'],
+    ['profile', 'Schimbă profilul'],
     ['soon', 'Funcție dintr-o etapă viitoare'],
   ];
   var ICON_MODES = [
@@ -41,7 +53,9 @@
     ['emoji', 'Emoji'],
     ['image', 'Imagine încărcată'],
   ];
-  var TOGGLES = [['', 'Niciuna'], ['caffeinate', 'Ține treaz']];
+  var TOGGLES = [['', 'Niciuna'], ['caffeinate', 'Ține treaz'], ['focus', 'Focus pornit'], ['mic_muted', 'Microfon oprit'],
+    ['timer', 'Pomodoro rulează'], ['meet_call', 'În apel Meet']];
+  var DYNAMICS = [['', 'Nu'], ['next_meeting', 'Următorul meeting (titlu + minute)'], ['timer', 'Timp rămas Pomodoro'], ['spotify', 'Coperta și piesa Spotify']];
 
   // ---------------------------------------------------------------- încărcare / salvare
   function load() {
@@ -179,6 +193,22 @@
 
   function renderSetTools() {
     var s = cfg.sets[cur.set];
+    var sp = document.querySelector('.set-profiles'); if (sp) sp.remove();
+    if ((cfg.profiles || []).length) {
+      var box = h('div', { class: 'set-profiles' }, ['Vizibil în profilurile:']);
+      cfg.profiles.forEach(function (p) {
+        var c = h('input', { type: 'checkbox' }); c.checked = !s.profiles || !s.profiles.length || s.profiles.indexOf(p.name) !== -1;
+        c.addEventListener('change', function () {
+          var all = cfg.profiles.map(function (x) { return x.name; });
+          var cur2 = (s.profiles && s.profiles.length) ? s.profiles.slice() : all.slice();
+          if (c.checked) { if (cur2.indexOf(p.name) === -1) cur2.push(p.name); } else cur2 = cur2.filter(function (n) { return n !== p.name; });
+          if (cur2.length === all.length) delete s.profiles; else s.profiles = cur2;
+          changed(false);
+        });
+        box.appendChild(h('label', {}, [c, p.name]));
+      });
+      $('set-tools').after(box);
+    }
     $('set-name').value = s.name || '';
     $('set-left').disabled = cur.set === 0;
     $('set-right').disabled = cur.set === cfg.sets.length - 1;
@@ -351,6 +381,7 @@
     box.appendChild(h('fieldset', {}, [h('legend', { text: 'Pe iPhone' }),
       field('Pagină dedicată deschisă la tap', selectInput(pages, b.page || '', function (v) { if (v) b.page = v; else delete b.page; changed(false); })),
       field('Starea afișată pe buton (verde când e activ)', selectInput(TOGGLES, b.state || '', function (v) { if (v) b.state = v; else delete b.state; changed(false); })),
+      field('Text / imagine dinamică pe buton', selectInput(DYNAMICS, b.dynamic || '', function (v) { if (v) b.dynamic = v; else delete b.dynamic; changed(false); })),
     ]));
 
     // --- butoane
@@ -378,6 +409,13 @@
       if (v === 'applescript') keep.script = 'display notification "Salut" with title "Mac Deck"';
       if (v === 'shell') keep.command = '';
       if (v === 'soon') keep.phase = 6;
+      if (v === 'sequence') { keep.steps = []; keep.delay = 0.8; }
+      if (v === 'spotify') keep.cmd = 'playpause';
+      if (v === 'meet') keep.cmd = 'mic';
+      if (v === 'timer') keep.cmd = 'toggle';
+      if (v === 'window') keep.op = 'left';
+      if (v === 'snippet') keep.text = '';
+      if (v === 'profile') keep.name = 'auto';
       if (!keep.label) delete keep.label;
       keep.type = v;
       b[key] = keep;
@@ -418,6 +456,34 @@
       case 'shell':
         fs.appendChild(field('Comandă (bash)', textInput(a, 'command', { multiline: true, placeholder: 'ex. open ~/Downloads' })));
         break;
+      case 'sequence':
+        fs.appendChild(stepsEditor(a));
+        break;
+      case 'spotify':
+        fs.appendChild(field('Comanda', selectInput([['playpause', 'Play / Pauză'], ['next', 'Piesa următoare'], ['prev', 'Piesa anterioară'], ['shuffle', 'Shuffle'], ['repeat', 'Repeat']], a.cmd, function (v) { a.cmd = v; changed(false); })));
+        break;
+      case 'meet':
+        fs.appendChild(field('Comanda', selectInput([['mic', 'Microfon on/off'], ['cam', 'Cameră on/off'], ['hand', 'Ridică mâna'], ['captions', 'Subtitrări'], ['chat', 'Chat'], ['people', 'Participanți'], ['present', 'Prezintă'], ['leave', 'Ieși din apel']], a.cmd, function (v) { a.cmd = v; changed(false); })));
+        break;
+      case 'timer':
+        fs.appendChild(field('Comanda', selectInput([['toggle', 'Start / Pauză'], ['reset', 'Reset'], ['skip', 'Sari la următoarea etapă']], a.cmd, function (v) { a.cmd = v; changed(false); })));
+        break;
+      case 'window':
+        fs.appendChild(field('Poziția', selectInput([['left', 'Jumătatea stângă'], ['right', 'Jumătatea dreaptă'], ['top', 'Sus'], ['bottom', 'Jos'], ['full', 'Tot ecranul'], ['center', 'Centru'], ['next', 'Monitorul următor']], a.op, function (v) { a.op = v; changed(false); })));
+        break;
+      case 'snippet':
+        fs.appendChild(field('Textul lipit în aplicația din față', textInput(a, 'text', { multiline: true })));
+        fs.appendChild(check('Apasă Enter după lipire', a, 'enter'));
+        break;
+      case 'profile':
+        fs.appendChild(field('Profil', selectInput([['auto', 'Automat (după program)']].concat((cfg.profiles || []).map(function (p) { return [p.name, p.name]; })), a.name, function (v) { a.name = v; changed(false); })));
+        break;
+      case 'next_meeting':
+        fs.appendChild(h('p', { class: 'note', text: 'Necesită adresa iCal a calendarului (Integrări). Folosește și „Text dinamic: Următorul meeting”.' }));
+        break;
+      case 'focus':
+        fs.appendChild(h('p', { class: 'note', text: 'Rulează shortcut-urile de Focus setate în Integrări.' }));
+        break;
       case 'soon':
         fs.appendChild(h('p', { class: 'note', text: 'Funcția vine în etapa ' + (a.phase || '?') + ' din plan. Butonul afișează un mesaj până atunci.' }));
         break;
@@ -426,6 +492,26 @@
     }
     if (nested) fs.appendChild(h('button', { class: 'btn small', type: 'button', text: '▶ Testează apăsarea lungă', onclick: function () { testAction(b.long); } }));
     return fs;
+  }
+
+  function stepsEditor(a) {
+    var wrap = h('div', { class: 'steps' });
+    (a.steps || []).forEach(function (st, i) {
+      var holder = {};
+      Object.defineProperty(holder, 'action', { get: function () { return a.steps[i]; }, set: function (x) { a.steps[i] = x; } });
+      var box = h('div', { class: 'step' }, [h('div', { class: 'li-head' }, [
+        h('b', { text: 'Pasul ' + (i + 1) }), h('span', { class: 'grow' }),
+        h('button', { class: 'btn small', type: 'button', text: '↑', disabled: i === 0, onclick: function () { var t = a.steps[i - 1]; a.steps[i - 1] = a.steps[i]; a.steps[i] = t; changed(true); } }),
+        h('button', { class: 'btn small danger', type: 'button', text: '✕', onclick: function () { a.steps.splice(i, 1); changed(true); } }),
+      ])]);
+      var ed = actionEditor(null, holder, 'action', true);
+      var tb = ed.querySelector('button.btn.small:last-child'); if (tb && /apăsarea lungă/.test(tb.textContent)) tb.remove();
+      box.appendChild(ed);
+      wrap.appendChild(box);
+    });
+    wrap.appendChild(h('button', { class: 'btn small', type: 'button', text: '+ Adaugă pas', onclick: function () { a.steps = a.steps || []; a.steps.push({ type: 'app', app: '' }); changed(true); } }));
+    wrap.appendChild(field('Pauză între pași (secunde)', textInput(a, 'delay', { type: 'number' })));
+    return field('Pași', wrap);
   }
 
   function promptsEditor(a) {
@@ -552,6 +638,174 @@
   $('frame').addEventListener('load', function () { setTimeout(syncPreview, 400); });
 
   function renderAll() { renderTabs(); renderSetTools(); renderGrid(); renderInspector(); fitPreview(); syncPreview(); }
+
+  // ================================================================ vederi: liste, integrări, diagnostic
+  var curView = 'buttons';
+  document.querySelectorAll('#views .view').forEach(function (b) {
+    b.addEventListener('click', function () { showView(b.dataset.view); });
+  });
+  function showView(v) {
+    curView = v;
+    document.querySelectorAll('#views .view').forEach(function (b) { b.classList.toggle('cur', b.dataset.view === v); });
+    $('view-buttons').classList.toggle('hidden', v !== 'buttons');
+    ['lists', 'integrations', 'diag'].forEach(function (x) { $('view-' + x).classList.toggle('hidden', v !== x); });
+    if (v === 'lists') renderLists();
+    if (v === 'integrations') renderIntegrations();
+    if (v === 'diag') renderDiag();
+    if (v === 'buttons') renderAll();
+  }
+
+  // listă generică: fields = [{key, label, type: text|multiline|number|check|csv, placeholder}]
+  function listEditor(arr, fields, newItem, titleKey) {
+    var wrap = h('div', { class: 'list-ed' });
+    function draw() {
+      wrap.innerHTML = '';
+      arr.forEach(function (it, i) {
+        var li = h('div', { class: 'li' }, [h('div', { class: 'li-head' }, [
+          h('span', { class: 'grow', text: '#' + (i + 1) + (titleKey && it[titleKey] ? ' · ' + it[titleKey] : '') }),
+          h('button', { class: 'btn small', type: 'button', text: '↑', disabled: i === 0, onclick: function () { var t = arr[i - 1]; arr[i - 1] = arr[i]; arr[i] = t; changed(false); draw(); } }),
+          h('button', { class: 'btn small', type: 'button', text: '↓', disabled: i === arr.length - 1, onclick: function () { var t = arr[i + 1]; arr[i + 1] = arr[i]; arr[i] = t; changed(false); draw(); } }),
+          h('button', { class: 'btn small danger', type: 'button', text: '✕', onclick: function () { arr.splice(i, 1); changed(false); draw(); } }),
+        ])]);
+        fields.forEach(function (f) {
+          if (f.type === 'check') { li.appendChild(check(f.label, it, f.key)); return; }
+          if (f.type === 'csv') {
+            var inp = h('input', { type: 'text', placeholder: f.placeholder || '' });
+            inp.value = (it[f.key] || []).join(', ');
+            inp.addEventListener('input', function () { it[f.key] = inp.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean); changed(false); });
+            li.appendChild(field(f.label, inp)); return;
+          }
+          li.appendChild(field(f.label, textInput(it, f.key, { multiline: f.type === 'multiline', type: f.type === 'number' ? 'number' : 'text', placeholder: f.placeholder, optional: f.optional })));
+        });
+        wrap.appendChild(li);
+      });
+      wrap.appendChild(h('button', { class: 'btn small', type: 'button', text: '+ Adaugă', onclick: function () { arr.push(JSON.parse(JSON.stringify(newItem))); changed(false); draw(); } }));
+    }
+    draw();
+    return wrap;
+  }
+  function card(title, desc, kids) {
+    return h('div', { class: 'card' }, [h('h2', { text: title }), desc ? h('p', { text: desc }) : null].concat(kids));
+  }
+  function pg(id) { cfg.pages[id] = cfg.pages[id] || { title: id }; return cfg.pages[id]; }
+  function arrOf(obj, key) { if (!Array.isArray(obj[key])) obj[key] = []; return obj[key]; }
+
+  function renderLists() {
+    var v = $('view-lists'); v.innerHTML = '';
+    var cl = pg('claude');
+    v.appendChild(card('Claude: Pinned', 'Numele exacte ale elementelor din Claude. Opțional, un prompt trimis automat după deschidere (apăsarea lungă pe telefon deschide fără prompt).',
+      [listEditor(arrOf(cl, 'pinned'), [{ key: 'name', label: 'Nume' }, { key: 'prompt', label: 'Prompt (opțional)', type: 'multiline', optional: true }], { name: '' }, 'name')]));
+    v.appendChild(card('Claude: Artefacte', null,
+      [listEditor(arrOf(cl, 'artifacts'), [{ key: 'name', label: 'Nume' }, { key: 'prompt', label: 'Prompt (opțional)', type: 'multiline', optional: true }], { name: '' }, 'name')]));
+    v.appendChild(card('Snippets', 'Texte lipite în aplicația din față de pe Mac.',
+      [listEditor(arrOf(pg('snippets'), 'items'), [{ key: 'label', label: 'Titlu' }, { key: 'text', label: 'Text', type: 'multiline' }, { key: 'enter', label: 'Apasă Enter după lipire', type: 'check' }], { label: 'Snippet nou', text: '' }, 'label')]));
+    v.appendChild(card('Prompt vocal: șabloane', '{text} se înlocuiește cu ce ai dictat.',
+      [listEditor(arrOf(pg('voice'), 'templates'), [{ key: 'label', label: 'Nume' }, { key: 'text', label: 'Șablon', type: 'multiline' }], { label: 'Șablon nou', text: '{text}' }, 'label')]));
+    v.appendChild(card('Analizează pagina: instrumente', 'Variabile: {url} (codificat), {raw} (neschimbat), {domain}.',
+      [listEditor(arrOf(pg('analyze'), 'tools'), [{ key: 'label', label: 'Nume' }, { key: 'url', label: 'Adresă' }], { label: 'Instrument nou', url: 'https://' }, 'label')]));
+    var sf = pg('sfrog');
+    v.appendChild(card('Screaming Frog', 'Configurațiile se exportă din Screaming Frog: File → Configuration → Save As (.seospiderconfig). Prima din listă e folosită de „Crawl site curent”.', [
+      listEditor(arrOf(sf, 'configs'), [{ key: 'name', label: 'Nume' }, { key: 'path', label: 'Cale fișier', placeholder: '~/Documents/SF/audit.seospiderconfig' }], { name: 'Configurație', path: '' }, 'name'),
+      field('Folder rezultate', textInput(sf, 'output_folder')),
+      field('Tab-uri exportate (CSV)', textInput(sf, 'export_tabs'), 'ex. Internal:All,Response Codes:Client Error (4xx)'),
+    ]));
+    var mg = pg('meetgeek');
+    function csvField(lbl, key) {
+      var inp = h('input', { type: 'text' }); inp.value = (mg[key] || []).join(', ');
+      inp.addEventListener('input', function () { mg[key] = inp.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean); changed(false); });
+      return field(lbl, inp);
+    }
+    v.appendChild(card('MeetGeek', 'Butoanele de înregistrare se caută după nume. Verifică numele exacte în Diagnostic. Dacă MeetGeek are o scurtătură globală, completeaz-o și se folosește aceea.', [
+      field('Numele aplicației', textInput(mg, 'app')),
+      csvField('Nume buton Start (separate prin virgulă)', 'start_names'),
+      csvField('Nume buton Stop', 'stop_names'),
+      field('Scurtătură start/stop (opțional)', textInput(mg, 'toggle_keys', { optional: true, placeholder: 'ex. cmd+shift+r' })),
+    ]));
+    var tm = pg('timer');
+    v.appendChild(card('Pomodoro', null, [h('div', { class: 'row2' }, [
+      field('Lucru (minute)', textInput(tm, 'work', { type: 'number' })), field('Pauză (minute)', textInput(tm, 'break', { type: 'number' })),
+    ])]));
+  }
+
+  function renderIntegrations() {
+    var v = $('view-integrations'); v.innerHTML = '';
+    cfg.integrations = cfg.integrations || {};
+    var c = cfg.integrations.claude = cfg.integrations.claude || {};
+    c.delays = c.delays || {};
+    v.appendChild(card('Claude (aplicația pentru Mac)', 'Deck-ul deschide elementele prin căutarea din aplicație și lipește promptul. Dacă e prea rapid pentru Mac-ul tău, mărește pauzele.', [
+      field('Aplicația', textInput(c, 'app')),
+      h('div', { class: 'row2' }, [field('Scurtătură căutare', textInput(c, 'search_keys')), field('Scurtătură chat nou', textInput(c, 'new_chat_keys'))]),
+      h('div', { class: 'row2' }, [field('Pauză după activare (s)', textInput(c.delays, 'activate', { type: 'number' })), field('Pauză după căutare (s)', textInput(c.delays, 'search', { type: 'number' }))]),
+      h('div', { class: 'row2' }, [field('Așteptare rezultate (s)', textInput(c.delays, 'results', { type: 'number' })), field('Așteptare deschidere (s)', textInput(c.delays, 'open', { type: 'number' }))]),
+      h('button', { class: 'btn', type: 'button', text: '▶ Testează: deschide „Planificare săptămânală workflow” fără prompt', onclick: function () { testAction({ type: 'claude', item: 'Planificare săptămânală workflow' }); } }),
+    ]));
+    var cal = cfg.integrations.calendar = cfg.integrations.calendar || {};
+    v.appendChild(card('Google Calendar: următorul meeting', 'Google Calendar → Settings → calendarul tău → Integrate calendar → „Secret address in iCal format”. Copiază adresa aici. Rămâne doar pe Mac-ul tău.', [
+      field('Adresa secretă iCal', textInput(cal, 'ical_url', { placeholder: 'https://calendar.google.com/calendar/ical/.../basic.ics' })),
+    ]));
+    var f = cfg.integrations.focus = cfg.integrations.focus || {};
+    v.appendChild(card('Focus / Nu deranja', 'macOS nu permite pornirea Focus direct din scripturi, așa că deck-ul folosește două shortcut-uri. În aplicația Shortcuts creează: „Mac Deck Focus On” (acțiunea Set Focus → Do Not Disturb → On) și „Mac Deck Focus Off” (→ Off).', [
+      h('div', { class: 'row2' }, [field('Shortcut pornire', textInput(f, 'on_shortcut', { list: 'dl-shortcuts' })), field('Shortcut oprire', textInput(f, 'off_shortcut', { list: 'dl-shortcuts' }))]),
+      check('Pornește Focus automat cât timp ești într-un apel Meet', f, 'during_meet'),
+    ]));
+    cfg.profiles = cfg.profiles || [];
+    var dayNames = ['L', 'Ma', 'Mi', 'J', 'V', 'S', 'D'];
+    var profWrap = h('div', { class: 'list-ed' });
+    function drawProfiles() {
+      profWrap.innerHTML = '';
+      cfg.profiles.forEach(function (p, i) {
+        p.days = p.days || [1, 2, 3, 4, 5, 6, 7];
+        var days = h('div', { class: 'days' });
+        dayNames.forEach(function (dn, di) {
+          var cb = h('input', { type: 'checkbox' }); cb.checked = p.days.indexOf(di + 1) !== -1;
+          cb.addEventListener('change', function () {
+            p.days = p.days.filter(function (x) { return x !== di + 1; }); if (cb.checked) p.days.push(di + 1); p.days.sort(); changed(false);
+          });
+          days.appendChild(h('label', {}, [cb, dn]));
+        });
+        profWrap.appendChild(h('div', { class: 'li' }, [
+          h('div', { class: 'li-head' }, [h('span', { class: 'grow', text: 'Profil ' + (i + 1) }),
+            h('button', { class: 'btn small danger', type: 'button', text: '✕', onclick: function () { cfg.profiles.splice(i, 1); changed(false); drawProfiles(); } })]),
+          field('Nume', textInput(p, 'name')), days,
+          h('div', { class: 'row2' }, [field('De la', textInput(p, 'from', { placeholder: '08:00' })), field('Până la', textInput(p, 'to', { placeholder: '19:00' }))]),
+        ]));
+      });
+      profWrap.appendChild(h('button', { class: 'btn small', type: 'button', text: '+ Profil', onclick: function () { cfg.profiles.push({ name: 'Profil nou', days: [1, 2, 3, 4, 5], from: '08:00', to: '19:00' }); changed(false); drawProfiles(); } }));
+    }
+    drawProfiles();
+    v.appendChild(card('Profiluri (Birou / Acasă)', 'În modul automat, se alege primul profil care se potrivește cu ziua și ora; altfel ultimul. Fiecare set poate fi limitat la anumite profiluri (din tab-ul Butoane, sub numele setului).', [
+      field('Profil activ', selectInput([['auto', 'Automat (după program)']].concat(cfg.profiles.map(function (p) { return [p.name, p.name]; })), cfg.ui.profile || 'auto', function (x) { cfg.ui.profile = x; changed(false); })),
+      profWrap,
+    ]));
+  }
+
+  function renderDiag() {
+    var v = $('view-diag'); v.innerHTML = '';
+    var app = h('input', { type: 'text', list: 'dl-apps', placeholder: 'ex. MeetGeek' });
+    var out = h('div', { class: 'scroll' });
+    v.appendChild(card('Elementele interfeței unei aplicații', 'Arată butoanele și meniurile pe care deck-ul le poate apăsa (pentru MeetGeek și Screaming Frog). Aplicația trebuie să fie deschisă; Terminal are nevoie de permisiunea Accessibility.', [
+      field('Aplicația', app),
+      h('button', { class: 'btn primary', type: 'button', text: 'Listează elementele', onclick: function () {
+        out.innerHTML = '<p class="muted">Se citește… (poate dura până la un minut)</p>';
+        fetch('/api/admin/uidump', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app: app.value }) })
+          .then(function (r) { return r.json(); }).then(function (r) {
+            if (!r.ok) { out.innerHTML = '<p style="color:var(--red)">' + esc(r.msg) + '</p>'; return; }
+            out.innerHTML = '<table class="dump">' + r.items.map(function (it) {
+              return '<tr><td>' + esc(it.role) + '</td><td>' + esc(it.name) + '</td><td class="muted">' + esc(it.desc) + '</td></tr>';
+            }).join('') + '</table>';
+          });
+      } }), out,
+    ]));
+    var tests = [
+      ['Chrome: deschide Gmail', { type: 'chrome', url: 'https://mail.google.com' }],
+      ['Spotify: play/pauză (verifică „Allow JavaScript from Apple Events”)', { type: 'spotify', cmd: 'playpause' }],
+      ['Scurtătură: ⌘ Space (Spotlight) — verifică Accessibility', { type: 'keys', keys: 'cmd+space' }],
+      ['Fereastra din față: jumătatea stângă', { type: 'window', op: 'left' }],
+      ['Microfon on/off', { type: 'mic_mute' }],
+    ];
+    v.appendChild(card('Teste rapide de permisiuni', 'Fiecare buton rulează o acțiune pe Mac. Dacă macOS cere o permisiune, acceptă și încearcă din nou.',
+      tests.map(function (t) { return h('button', { class: 'btn', type: 'button', text: '▶ ' + t[0], onclick: function () { testAction(t[1]); } }); })));
+  }
 
   load();
 })();

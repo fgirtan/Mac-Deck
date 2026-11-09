@@ -171,7 +171,85 @@ def do_shortcut(a, ctx):
 
 
 def do_claude(a, ctx):
-    raise Soon(4)
+    prompts = a.get("prompts") or []
+    prompt = None
+    if prompts:
+        i = a.get("choice", 0)
+        prompt = prompts[max(0, min(int(i), len(prompts) - 1))].get("text")
+    return ctx["features"].claude(a.get("item"), prompt, new_chat=not a.get("item"))
+
+
+def do_sequence(a, ctx):
+    """Macro: rulează pașii pe rând (ex. „Pornește ziua”)."""
+    import time
+    done, errors = 0, []
+    for step in a.get("steps") or []:
+        try:
+            execute(step, ctx)
+            done += 1
+        except Exception as e:
+            errors.append(str(e))
+        time.sleep(float(a.get("delay", 0.8)))
+    if errors:
+        return "%d pași rulați, %d erori: %s" % (done, len(errors), errors[0])
+    return "%d pași rulați" % done
+
+
+def do_spotify(a, ctx):
+    return ctx["features"].page_cmd("spotify", {"cmd": a.get("cmd", "playpause")})
+
+
+def do_meet(a, ctx):
+    return ctx["features"].page_cmd("meet", {"cmd": a.get("cmd", "mic")})
+
+
+def do_mic_mute(a, ctx):
+    return ctx["features"].toggle_mic()
+
+
+def do_focus(a, ctx):
+    return ctx["features"].toggle_focus()
+
+
+def do_timer(a, ctx):
+    return ctx["features"].timer_cmd(a.get("cmd", "toggle"))
+
+
+def do_next_meeting(a, ctx):
+    nm = ctx["features"].live.get("next_meeting")
+    if nm and nm.get("link"):
+        from . import chrome
+        chrome.open_url(nm["link"])
+        return "Intru în: " + nm.get("title", "")
+    run(["open", "https://calendar.google.com"])
+    return "Niciun meeting cu link în următoarele ore" if not nm else "Meeting fără link: " + nm.get("title", "")
+
+
+def do_crawl_current(a, ctx):
+    return ctx["features"].crawl_current()
+
+
+def do_page(a, ctx):
+    return ""  # doar deschide pagina pe telefon
+
+
+def do_window(a, ctx):
+    return ctx["features"].window(a.get("op", "full"))
+
+
+def do_snippet(a, ctx):
+    from . import uiauto
+    uiauto.paste_text(a.get("text", ""), press_return=bool(a.get("enter")))
+    return "Text lipit"
+
+
+def do_profile(a, ctx):
+    cfg = ctx["deck"].config.get()
+    cfg.setdefault("ui", {})["profile"] = a.get("name") or "auto"
+    ctx["deck"].config.save(cfg)
+    ctx["features"]._update_profile()
+    ctx["deck"].hub.send({"type": "config"})
+    return "Profil: " + (a.get("name") or "automat")
 
 
 def do_soon(a, ctx):
@@ -192,6 +270,18 @@ HANDLERS = {
     "screenshot": do_screenshot,
     "caffeinate": do_caffeinate,
     "claude": do_claude,
+    "sequence": do_sequence,
+    "spotify": do_spotify,
+    "meet": do_meet,
+    "mic_mute": do_mic_mute,
+    "focus": do_focus,
+    "timer": do_timer,
+    "next_meeting": do_next_meeting,
+    "crawl_current": do_crawl_current,
+    "page": do_page,
+    "window": do_window,
+    "snippet": do_snippet,
+    "profile": do_profile,
     "soon": do_soon,
 }
 

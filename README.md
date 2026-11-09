@@ -10,12 +10,12 @@ Specificațiile complete sunt în [SPEC.md](SPEC.md).
 |---|---|---|
 | 1 | Nucleu: grilă 5×3 cu swipe, slidere, deschidere aplicații/site-uri, profil Chrome, iconițe, HTTPS, ecran mereu aprins, mod repaus | ✅ gata, de testat pe Mac |
 | 2 | Configurator pe Mac (`http://localhost:8765/config`) | ✅ gata, de testat pe Mac |
-| 3 | Pagini Spotify, Google Meet, Activity Monitor | ⏳ |
-| 4 | Claude: prompturi automate, liste Pinned / Artefacte | ⏳ |
-| 5 | Screaming Frog, MeetGeek | ⏳ |
-| 6 | Funcțiile din secțiunea 11 (meeting, macro-uri, snippets, Focus etc.) | ⏳ |
+| 3 | Pagini Spotify, Google Meet, Activity Monitor | ✅ gata, de testat pe Mac |
+| 4 | Claude: prompturi automate, liste Pinned / Artefacte | ✅ gata, de testat pe Mac |
+| 5 | Screaming Frog, MeetGeek | ✅ gata, de testat pe Mac |
+| 6 | Următorul meeting, insigne, macro „Pornește ziua”, prompt vocal, snippets, Focus, Pomodoro, analiză SEO, crawl site curent, microfon, ieșire audio, ferestre, apăsare lungă, profiluri | ✅ gata, de testat pe Mac |
 
-Butoanele cu un punct gri în colț sunt pentru funcții din etapele următoare.
+Totul a fost testat în modul simulat. Automatizările care depind de aplicațiile tale (Claude, MeetGeek, Screaming Frog, Spotify Web, Meet) pot avea nevoie de mici ajustări din configurator, după ce le încerci pe Mac.
 
 ## Instalare pe Mac
 
@@ -42,16 +42,33 @@ Mai simplu: în Finder, dă **dublu-click pe `Porneste Mac Deck.command`** din f
 
 Pentru actualizări: `cd ~/mac-deck && git pull`, apoi repornește serverul (Ctrl+C și din nou comanda de mai sus).
 
-### Permisiuni macOS (o singură dată)
+### Permisiuni și pregătire (o singură dată)
 
-La primele apăsări, macOS cere permisiuni pentru **Terminal** (sau aplicația din care rulezi serverul). Acceptă-le:
+La primele folosiri, macOS cere permisiuni pentru **Terminal** (sau aplicația din care rulezi serverul). Acceptă-le. Configuratorul → **Diagnostic** are butoane de test pentru fiecare.
 
-| Permisiune | Unde | Pentru |
+| Ce | Unde | Pentru |
 |---|---|---|
-| **Automation → Google Chrome** | apare automat | butoanele care deschid site-uri și reutilizează tab-urile |
-| **Automation → System Events** | apare automat | blocare Mac, screenshot |
-| **Accessibility** | System Settings → Privacy & Security → Accessibility → adaugă Terminal | blocare Mac, screenshot (și etapele următoare) |
+| **Automation → Google Chrome** | apare automat | site-uri, tab-uri, Spotify Web, Meet, analiză SEO |
+| **Allow JavaScript from Apple Events** | în Chrome: **View → Developer → Allow JavaScript from Apple Events** | piesa curentă și controalele Spotify, starea și controalele din Meet |
+| **Accessibility** | System Settings → Privacy & Security → Accessibility → adaugă **Terminal** | scurtături de tastatură, Claude, snippets, MeetGeek, Screaming Frog, ferestre, blocare, insigne din Dock |
+| **Automation → System Events** | apare automat | la fel ca mai sus |
 | **Conexiuni de rețea** | fereastra „Allow incoming connections” | ca iPhone-ul să ajungă la Mac |
+
+Opționale, pentru funcții anume:
+
+- **Următorul meeting:** Google Calendar → Settings → calendarul tău → *Integrate calendar* → **Secret address in iCal format**. Lipește adresa în configurator → Integrări.
+- **Focus / Nu deranja:** în aplicația **Shortcuts** creează două shortcut-uri:
+  - „Mac Deck Focus On”: acțiunea *Set Focus* → Do Not Disturb → **On**;
+  - „Mac Deck Focus Off”: la fel, cu **Off**.
+- **Ieșire audio** (AirPods / difuzoare / monitor): instalează utilitarul, cu [Homebrew](https://brew.sh):
+  ```bash
+  brew install switchaudio-osx
+  ```
+- **GPU și starea termică** în Activity Monitor: permite `powermetrics` fără parolă. Comanda o rulezi o singură dată și cere parola de administrator:
+  ```bash
+  echo "$USER ALL=(root) NOPASSWD: /usr/bin/powermetrics" | sudo tee /etc/sudoers.d/macdeck
+  ```
+- **Screaming Frog, crawl în fundal:** folosește linia de comandă din aplicație (necesită licența). Configurațiile salvate (*File → Configuration → Save As*) se adaugă în configurator → Pagini și liste.
 
 ## Instalare pe iPhone
 
@@ -98,7 +115,48 @@ Cu serverul pornit, deschide pe Mac **http://localhost:8765/config**. Pagina se 
 | AppleScript / Comandă shell | orice script, pentru cazuri speciale |
 | Blochează Mac / Stinge ecranul / Screenshot / Ține treaz | controale de sistem |
 
-Configurația se află în `~/.macdeck/config.json` și poate fi editată și manual. Modificările din fișier se preiau automat.
+Celelalte tab-uri ale configuratorului:
+- **Pagini și liste:**
+  - listele Claude (Pinned / Artefacte, cu prompt opțional);
+  - snippets și șabloanele pentru prompt vocal;
+  - instrumentele SEO;
+  - configurațiile Screaming Frog;
+  - numele butoanelor MeetGeek;
+  - duratele Pomodoro.
+- **Integrări și profiluri:**
+  - Claude: scurtăturile și pauzele automatizării;
+  - adresa iCal a calendarului;
+  - shortcut-urile de Focus;
+  - profilurile Birou / Acasă.
+- **Diagnostic:**
+  - lista butoanelor și meniurilor unei aplicații, ca să ajustezi MeetGeek / Screaming Frog;
+  - teste rapide de permisiuni.
+
+Configurația se află în `~/.macdeck/config.json` și poate fi editată și manual. Modificările din fișier se preiau automat. La actualizarea proiectului, configurația existentă primește automat butoanele noi, iar modificările tale se păstrează.
+
+## Ce face fiecare pagină
+
+| Pagină | Conținut |
+|---|---|
+| **Spotify** | coperta și piesa curentă, ⏮ ⏯ ⏭, căutare (rezultatele se deschid pe Mac). Pe grilă, butonul arată coperta; apăsare lungă = play/pauză. |
+| **Google Meet** | microfon, cameră, mână ridicată, subtitrări, chat, participanți, prezentare, ieșire, cu starea afișată. Se deschide singură când intri într-un apel. |
+| **Activity Monitor** | grafice live pentru CPU, memorie, rețea, disc; baterie, GPU, starea termică; top 5 procese după CPU sau memorie. Tap pe un proces propriu = închidere (cu confirmare). |
+| **Claude** | tab-urile Pinned și Artefacte. Tap = deschide elementul (și trimite promptul, dacă are unul); apăsare lungă = deschide fără prompt. |
+| **Screaming Frog** | mod Spider / List, URL sau listă, configurație; Start / Pauză / Stop în fereastra aplicației; crawl în fundal cu progres și export CSV. |
+| **MeetGeek** | buton mare de înregistrare cu stare. |
+| **Prompt vocal** | dictezi cu 🎤 de pe tastatura iPhone și trimiți într-un chat nou în Claude, eventual cu un șablon. |
+| **Snippets** | texte gata făcute, lipite în aplicația din față. |
+| **Pomodoro** | 25/5 minute, cu notificare pe Mac; butonul de pe grilă arată timpul rămas. |
+| **Analizează pagina** | tab-ul activ din Chrome → PageSpeed, Search Console, Rich Results, Schema, site:, Wayback. |
+| **Ieșire audio** | lista dispozitivelor de ieșire; tap = comutare. |
+| **Ferestre** | fereastra din față: stânga, dreapta, sus, jos, tot ecranul, centru, alt monitor. |
+
+Pe grilă mai sunt:
+- **Următorul meeting**: titlul și minutele rămase; tap = intri în Meet.
+- **Pornește ziua**: macro configurabil, implicit Gmail, Calendar, Slack, Dashboard David și Raportul zilnic în Claude.
+- **Focus**, **Mic mute**, **Crawl site curent**, **Ține treaz**: cu starea afișată pe buton.
+- **Insigne** cu numărul de necitite: Gmail (din titlul tab-ului) și orice aplicație cu insignă în Dock (ex. Slack).
+- **Profiluri** (Birou / Acasă): seturile pot fi afișate doar în anumite profiluri, comutate automat după program sau manual.
 
 ## Fișiere
 
@@ -111,7 +169,12 @@ macdeck/
   certs.py      certificatul HTTPS local
   config.py     configurația implicită
   admin.py      configuratorul: validare, aplicații instalate, iconițe încărcate
-  web/          aplicația pentru iPhone (index.html, app.js) și configuratorul (config.html, config.js)
+  features.py   paginile dedicate și funcțiile live (Spotify, Meet, Claude, Screaming Frog, MeetGeek, timer…)
+  chrome.py     tab-uri și JavaScript în Chrome
+  uiauto.py     clipboard, clicuri pe butoane după nume, diagnostic (Accessibility)
+  monitor.py    datele pentru Activity Monitor
+  ics.py        următorul meeting din Google Calendar (iCal)
+  web/          aplicația pentru iPhone (index.html, app.js, pages.js) și configuratorul (config.html, config.js)
 ~/.macdeck/     config.json, certificate, iconițe, telefoane asociate
 ```
 

@@ -11,6 +11,12 @@
 <body>
 <header id="top">
   <div class="brand"><img src="/apple-touch-icon.png" alt=""><b>Mac Deck</b><span>Configurator</span></div>
+  <nav id="views">
+    <button class="view cur" data-view="buttons">Butoane</button>
+    <button class="view" data-view="lists">Pagini și liste</button>
+    <button class="view" data-view="integrations">Integrări și profiluri</button>
+    <button class="view" data-view="diag">Diagnostic</button>
+  </nav>
   <div id="save-state" class="muted">Se încarcă…</div>
   <div class="actions">
     <button id="undo" class="btn" title="Anulează ultima modificare (⌘Z)" disabled>↶ Anulează</button>
@@ -20,7 +26,7 @@
   </div>
 </header>
 
-<main>
+<main id="view-buttons">
   <section id="left">
     <nav id="tabs"></nav>
     <div id="set-tools">
@@ -41,6 +47,10 @@
 
   <aside id="inspector"><div class="empty-state">Selectează un buton din grilă.</div></aside>
 </main>
+
+<section id="view-lists" class="view-page hidden"></section>
+<section id="view-integrations" class="view-page hidden"></section>
+<section id="view-diag" class="view-page hidden"></section>
 
 <dialog id="settings">
   <form method="dialog">

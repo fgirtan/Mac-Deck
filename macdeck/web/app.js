@@ -57,6 +57,9 @@
       setConn(true);
       if (m.type === 'state') applyState(m);
       else if (m.type === 'config') reloadConfig();
+      else if (m.type === 'toast') toast(m.msg);
+      else if (m.type === 'open-page') { var pb = cfg && findButtonByPage(m.page); if (pb && ui.page !== m.page) { if (ui.page) closePage(ui.page); openPage(pb); } }
+      else if (m.type === 'close-page') { if (ui.page === m.page) closePage(m.page); }
     };
   }
 
@@ -103,7 +106,7 @@
     var sets = $('sets');
     sets.innerHTML = '';
     keyEls = {};
-    cfg.sets.forEach(function (s) {
+    visibleSets().forEach(function (s) {
       var el = document.createElement('div');
       el.className = 'set';
       el.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
@@ -113,7 +116,7 @@
         var k = document.createElement('button');
         k.className = 'key' + (b ? '' : ' empty');
         if (b) {
-          var soon = b.action && (b.action.type === 'soon' || b.action.type === 'claude');
+          var soon = b.action && b.action.type === 'soon';
           k.innerHTML = '<div class="ic">' + iconHTML(b) + '</div><div class="lb">' + esc(b.label) + '</div>' +
             (soon ? '<span class="soon"></span>' : '') + (b.page ? '<span class="has-page">›</span>' : '');
           bindPress(k, pressFn(b, false), b.long ? pressFn(b, true) : null);
@@ -126,13 +129,23 @@
     sets.querySelectorAll('img[data-letter]').forEach(function (img) {
       img.onerror = function () { img.outerHTML = '<span class="letter">' + esc(img.dataset.letter) + '</span>'; };
     });
-    $('dots').innerHTML = cfg.sets.map(function () { return '<i></i>'; }).join('');
-    ui.set = Math.min(ui.set || 0, cfg.sets.length - 1);
+    var vis = visibleSets();
+    $('dots').innerHTML = vis.map(function () { return '<i></i>'; }).join('');
+    ui.set = Math.min(ui.set || 0, vis.length - 1);
+    renderedProfile = currentProfile();
     requestAnimationFrame(function () { sets.scrollLeft = ui.set * sets.clientWidth; updateDots(); });
     if (ui.page && !pageEls[ui.page]) {
       var pb = findButtonByPage(ui.page);
       if (pb) openPage(pb, true);
     }
+  }
+
+  var renderedProfile = null;
+  function currentProfile() { return (state.live && state.live.profile) || null; }
+  function visibleSets() {
+    var p = currentProfile();
+    var v = cfg.sets.filter(function (s) { return !s.profiles || !s.profiles.length || !p || s.profiles.indexOf(p) !== -1; });
+    return v.length ? v : cfg.sets;
   }
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -229,6 +242,7 @@
   $('sheet').addEventListener('click', function (e) { if (e.target.id === 'sheet') closeSheet(); });
 
   // ---------------------------------------------------------------- pagini dedicate
+  var pageCtl = {};   // id pagină -> { r: renderer, timer, ctx }
   function openPage(b, instant) {
     var id = b.page, p = pageEls[id];
     if (!p) {
@@ -236,26 +250,54 @@
       p = document.createElement('section');
       p.className = 'page';
       p.innerHTML = '<header><button class="backb">' + glyph('back') + 'Înapoi</button>' +
-        '<div class="ic">' + iconHTML(b).replace('<img ', '<img style="width:28px;height:28px" ') + '</div><h2>' + esc(meta.title) + '</h2></header>' +
-        '<div class="body">' + glyph('wrench', 'g') +
-        '<div>Controalele pentru <b>' + esc(meta.title) + '</b> vin în etapa ' + esc(meta.phase || '?') + '.</div>' +
-        '<small>Aplicația a fost deschisă pe Mac.</small></div>';
-      p.querySelector('.body .g').style.cssText = 'width:36px;height:36px;color:#1e7a37';
+        '<div class="ic">' + iconHTML(b).replace('<img ', '<img style="width:28px;height:28px" ') + '</div><h2>' + esc(meta.title || b.label) + '</h2></header>' +
+        '<div class="body"></div>';
       var himg = p.querySelector('header img');
       if (himg) himg.onerror = function () { himg.remove(); };
       bindPress(p.querySelector('.backb'), function () { feedback(); closePage(id); }, null);
       edgeSwipe(p, function () { closePage(id); });
+      var ctx = {
+        id: id, button: b, meta: meta, esc: esc, toast: toast, feedback: feedback, press: bindPress,
+        call: function (body) { return api('/api/page/' + id, body || {}); },
+        get: function () { return api('/api/page/' + id); },
+        refresh: function () { refreshPage(id); },
+      };
+      var maker = window.DeckPages && window.DeckPages[id];
+      var body = p.querySelector('.body');
+      if (maker) {
+        var r = maker(ctx);
+        body.appendChild(r.el);
+        pageCtl[id] = { r: r, ctx: ctx, timer: null };
+      } else {
+        body.classList.add('empty');
+        body.textContent = 'Pagina „' + id + '” nu există.';
+      }
       $('pages').appendChild(p);
       pageEls[id] = p;
     }
     if (instant) p.style.transition = 'none';
     requestAnimationFrame(function () { p.classList.add('open'); if (instant) requestAnimationFrame(function () { p.style.transition = ''; }); });
     ui.page = id; store.set('macdeck.ui', ui);
+    startPage(id);
   }
+  function refreshPage(id) {
+    var c = pageCtl[id];
+    if (!c) return;
+    c.ctx.get().then(function (st) { try { c.r.update(st || {}); } catch (e) { console.error(e); } }).catch(function () {});
+  }
+  function startPage(id) {
+    var c = pageCtl[id];
+    if (!c) return;
+    stopPage(id);
+    refreshPage(id);
+    if (c.r.poll) c.timer = setInterval(function () { if (!document.hidden && !sleeping) refreshPage(id); }, c.r.poll);
+  }
+  function stopPage(id) { var c = pageCtl[id]; if (c && c.timer) { clearInterval(c.timer); c.timer = null; } }
   function closePage(id) {
     var p = pageEls[id];
     if (p) p.classList.remove('open');   // elementul rămâne: la revenire, starea e aceeași
-    ui.page = null; store.set('macdeck.ui', ui);
+    stopPage(id);
+    if (ui.page === id) { ui.page = null; store.set('macdeck.ui', ui); }
   }
   function edgeSwipe(el, cb) {
     var x0 = null;
@@ -321,17 +363,68 @@
 
   function applyState(s) {
     if (!s) return;
-    ['volume', 'muted', 'brightness', 'toggles'].forEach(function (k) {
+    ['volume', 'muted', 'brightness', 'toggles', 'live'].forEach(function (k) {
       if (k in s && !dragging[k]) state[k] = s[k];
     });
     paintSliders();
-    var t = state.toggles || {};
+    var t = state.toggles || {}, live = state.live || {};
+    if (cfg && currentProfile() !== renderedProfile) render();
     if (cfg) cfg.sets.forEach(function (set) {
       set.buttons.forEach(function (b) {
-        if (b && b.state && keyEls[b.id]) keyEls[b.id].classList.toggle('on', !!t[b.state]);
+        if (!b || !keyEls[b.id]) return;
+        var k = keyEls[b.id];
+        if (b.state) k.classList.toggle('on', !!t[b.state]);
+        if (b.dynamic) dynamicKey(b, k, live);
+        badgeKey(b, k, live.badges || {});
       });
     });
+    if (live.hint && live.hint !== shownHint) { shownHint = live.hint; toast(live.hint, true); }
     $('sleep-info').textContent = state.volume == null ? '' : 'Volum ' + state.volume + '%';
+  }
+
+  var shownHint = null;
+  function setLabel(k, txt) { var lb = k.querySelector('.lb'); if (lb && lb.textContent !== txt) lb.textContent = txt; }
+  function dynamicKey(b, k, live) {
+    if (b.dynamic === 'next_meeting') {
+      var m = live.next_meeting;
+      if (!m) { setLabel(k, 'Niciun meeting'); k.classList.remove('on', 'soon-m'); return; }
+      var mins = Math.round((m.start * 1000 - Date.now()) / 60000);
+      var when = mins <= 0 ? 'acum' : mins < 60 ? 'în ' + mins + ' min' : new Date(m.start * 1000).toTimeString().slice(0, 5);
+      setLabel(k, m.title + ' · ' + when);
+      k.classList.toggle('on', mins <= 5);
+    } else if (b.dynamic === 'timer') {
+      var tm = live.timer;
+      if (!tm || (!tm.running && tm.left === tm.full)) { setLabel(k, b.label); return; }
+      var sec = tm.left;
+      setLabel(k, (tm.mode === 'break' ? '☕ ' : '') + Math.floor(sec / 60) + ':' + ('0' + sec % 60).slice(-2));
+    } else if (b.dynamic === 'spotify') {
+      var sp = live.spotify, ic = k.querySelector('.ic');
+      if (sp && sp.art) {
+        var img = ic.querySelector('img.cover');
+        if (!img) { ic.innerHTML = '<img class="cover" alt="">'; img = ic.querySelector('img'); }
+        if (img.getAttribute('src') !== sp.art) img.src = sp.art;
+        setLabel(k, sp.title || b.label);
+        k.classList.toggle('on', !!sp.playing);
+      } else if (ic.querySelector('img.cover')) {
+        ic.innerHTML = iconHTML(b); setLabel(k, b.label); k.classList.remove('on');
+      }
+    }
+  }
+  function badgeCount(b, badges) {
+    var a = b.action || {};
+    if (b.badge === false) return 0;
+    if (a.type === 'chrome' && /mail\.google\.com/.test(a.url || '')) return badges.__gmail || 0;
+    var app = a.app || (b.icon && b.icon.app);
+    var dock = badges.__dock || {};
+    if (app && dock[app]) { var n = parseInt(dock[app], 10); return isNaN(n) ? '•' : n; }
+    return 0;
+  }
+  function badgeKey(b, k, badges) {
+    var n = badgeCount(b, badges), el = k.querySelector('.badge-n');
+    if (!n) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('span'); el.className = 'badge-n'; k.appendChild(el); }
+    var txt = typeof n === 'number' && n > 99 ? '99+' : String(n);
+    if (el.textContent !== txt) el.textContent = txt;
   }
 
   // ---------------------------------------------------------------- feedback
@@ -418,7 +511,7 @@
 
   // fără scroll / zoom accidental (în afară de swipe-ul dintre seturi)
   document.addEventListener('touchmove', function (e) {
-    if (!e.target.closest('#sets')) e.preventDefault();
+    if (!e.target.closest('#sets, .scroll, textarea')) e.preventDefault();
   }, { passive: false });
   document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
 

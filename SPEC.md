@@ -2,7 +2,7 @@
 
 Telefonul (iPhone 13 mini) devine un deck de control pentru Mac, asemănător cu Logitech MX Creative Keypad.
 
-> Status: **v3, aprobat pentru implementare**, cu toate răspunsurile integrate.
+> Status: **v3, implementat** (etapele 1–6). Detalii de instalare și utilizare în [README.md](README.md).
 
 ---
 

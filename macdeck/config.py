@@ -37,14 +37,128 @@ def _soon(id, label, glyph, phase, **kw):
     return b
 
 
+
+CLAUDE_PINNED = [
+    "Raport zilnic echipă David", "Dashboard Tehnic", "Rapoarte scădere SEO Gets (78 clienți)",
+    "Dashboard specialist cu 1-1-uri", "Planificare săptămânală workflow",
+    "Rapoarte Banca Transilvania și subsidiare (fork)", "Trenduri SEO Gets", "Raport echipă Technical SEO",
+    "Portofoliu SEO & GEO pe echipe", "Plan săptămânal",
+]
+
+DEFAULT_PAGES = {
+    "spotify": {"title": "Spotify"},
+    "meet": {"title": "Google Meet"},
+    "activity": {"title": "Activity Monitor"},
+    "claude": {
+        "title": "Claude",
+        "pinned": [{"name": n} for n in CLAUDE_PINNED],
+        "artifacts": [{"name": n} for n in CLAUDE_PINNED[:6]],
+    },
+    "sfrog": {
+        "title": "Screaming Frog",
+        "configs": [],
+        "output_folder": "~/Documents/Mac Deck Crawls",
+        "export_tabs": "Internal:All,Response Codes:Client Error (4xx)",
+    },
+    "meetgeek": {
+        "title": "MeetGeek",
+        "app": "MeetGeek",
+        "start_names": ["Start recording", "Start Recording", "Record", "Începe înregistrarea"],
+        "stop_names": ["Stop recording", "Stop Recording", "Oprește înregistrarea"],
+        "toggle_keys": "",
+    },
+    "voice": {
+        "title": "Prompt vocal",
+        "templates": [
+            {"label": "Direct", "text": "{text}"},
+            {"label": "Rezumă", "text": "Rezumă pe scurt, în română:\n\n{text}"},
+            {"label": "Email", "text": "Scrie un email profesionist în română pe baza notițelor:\n\n{text}"},
+            {"label": "Task-uri Notion", "text": "Transformă notițele în task-uri și adaugă-le în Notion:\n\n{text}"},
+        ],
+    },
+    "snippets": {
+        "title": "Snippets",
+        "items": [
+            {"label": "Mulțumesc, revin", "text": "Mulțumesc! Revin cu un răspuns în cursul zilei."},
+            {"label": "Raport atașat", "text": "Bună ziua,\n\nVă trimit atașat raportul SEO pentru perioada curentă.\n\nO zi bună,\nFlorin"},
+            {"label": "Checklist SEO", "text": "- Title & meta description\n- H1 unic\n- Canonical\n- Indexabil\n- Schema\n- Viteză (CWV)\n- Linkuri interne"},
+        ],
+    },
+    "timer": {"title": "Pomodoro", "work": 25, "break": 5},
+    "analyze": {
+        "title": "Analizează pagina",
+        "tools": [
+            {"label": "PageSpeed Insights", "url": "https://pagespeed.web.dev/analysis?url={url}"},
+            {"label": "Search Console (inspectare)",
+             "url": "https://search.google.com/search-console/inspect?resource_id=sc-domain%3A{domain}&id={url}"},
+            {"label": "Rich Results Test", "url": "https://search.google.com/test/rich-results?url={url}"},
+            {"label": "Schema validator", "url": "https://validator.schema.org/#url={url}"},
+            {"label": "Google site:", "url": "https://www.google.com/search?q=site%3A{domain}"},
+            {"label": "Wayback Machine", "url": "https://web.archive.org/web/*/{raw}"},
+        ],
+    },
+    "audio": {"title": "Ieșire audio"},
+    "windows": {"title": "Ferestre"},
+}
+
+DEFAULT_INTEGRATIONS = {
+    "claude": {"app": "Claude", "search_keys": "cmd+k", "new_chat_keys": "cmd+n",
+               "delays": {"activate": 0.8, "search": 0.7, "results": 1.2, "open": 2.0}},
+    "calendar": {"ical_url": ""},
+    "focus": {"on_shortcut": "Mac Deck Focus On", "off_shortcut": "Mac Deck Focus Off", "during_meet": False},
+}
+
+DEFAULT_PROFILES = [
+    {"name": "Birou", "days": [1, 2, 3, 4, 5], "from": "08:00", "to": "19:00"},
+    {"name": "Acasă", "days": [1, 2, 3, 4, 5, 6, 7], "from": "00:00", "to": "23:59"},
+]
+
+
+def _page_btn(id, label, glyph, page, **kw):
+    b = {"id": id, "label": label, "icon": {"type": "glyph", "name": glyph},
+         "action": {"type": "page"}, "page": page}
+    b.update(kw)
+    return b
+
+
+NEW_BUTTONS_SET2 = [
+    {"id": "next-meeting", "label": "Următorul meeting", "icon": {"type": "glyph", "name": "clock"},
+     "action": {"type": "next_meeting"}, "dynamic": "next_meeting"},
+    {"id": "start-day", "label": "Pornește ziua", "icon": {"type": "glyph", "name": "sunrise"},
+     "action": {"type": "sequence", "delay": 0.8, "steps": [
+         {"type": "chrome", "url": "https://mail.google.com"},
+         {"type": "chrome", "url": "https://calendar.google.com"},
+         {"type": "app", "app": "Slack"},
+         {"type": "chrome", "url": "https://david01.du.ro/daily/management/dashboard/florin"},
+         {"type": "claude", "item": "Raport zilnic echipă David",
+          "prompts": [{"label": "Pornește raportul", "text": "pornește raportul"}]},
+     ]}},
+    _page_btn("voice", "Prompt vocal", "mic", "voice"),
+    _page_btn("snippets", "Snippets", "text", "snippets"),
+    {"id": "focus", "label": "Focus", "icon": {"type": "glyph", "name": "moon"},
+     "action": {"type": "focus"}, "state": "focus"},
+    _page_btn("pomodoro", "Pomodoro", "timer", "timer", state="timer", dynamic="timer",
+              long={"type": "timer", "cmd": "toggle", "label": "Start / Pauză"}),
+    _page_btn("analyze", "Analizează pagina", "search", "analyze"),
+    {"id": "crawl-current", "label": "Crawl site curent", "icon": {"type": "glyph", "name": "spider"},
+     "action": {"type": "crawl_current"}},
+    {"id": "mic-mute", "label": "Mic mute", "icon": {"type": "glyph", "name": "mic-off"},
+     "action": {"type": "mic_mute"}, "state": "mic_muted"},
+    _page_btn("audio-out", "Ieșire audio", "headphones", "audio"),
+]
+
+NEW_WINDOWS = _page_btn("windows", "Ferestre", "layout", "windows")
+
+
 DEFAULT_CONFIG = {
-    "version": 1,
+    "version": 2,
     "ui": {
         "columns": 5,
         "rows": 3,
         "sleep_minutes": 5,
         "sound": True,
         "haptics": True,
+        "profile": "auto",
     },
     "sets": [
         {
@@ -55,7 +169,8 @@ DEFAULT_CONFIG = {
                               "new_tab": True, "label": "Email nou"}),
                 _app("claude", "Claude", "Claude", page="claude"),
                 _app("slack", "Slack", "Slack"),
-                _chrome("spotify", "Spotify", "https://open.spotify.com", page="spotify"),
+                _chrome("spotify", "Spotify", "https://open.spotify.com", page="spotify", dynamic="spotify",
+                        long={"type": "spotify", "cmd": "playpause", "label": "Play / Pauză"}),
                 _chrome("gemini", "Gemini", "https://gemini.google.com"),
 
                 {"id": "raport", "label": "Raport zilnic", "icon": {"type": "glyph", "name": "report"},
@@ -86,22 +201,11 @@ DEFAULT_CONFIG = {
         {
             "name": "Întâlniri, productivitate, SEO",
             "buttons": [
-                _chrome("meet", "Google Meet", "https://meet.google.com", page="meet"),
+                _chrome("meet", "Google Meet", "https://meet.google.com", page="meet", state="meet_call"),
                 _chrome("calendar", "Calendar", "https://calendar.google.com",
                         long={"type": "chrome", "url": "https://calendar.google.com/calendar/r/eventedit",
                               "new_tab": True, "label": "Eveniment nou"}),
-                _soon("next-meeting", "Următorul meeting", "clock", 6),
-                _soon("start-day", "Pornește ziua", "sunrise", 6),
-                _soon("voice", "Prompt vocal", "mic", 6),
-
-                _soon("snippets", "Snippets", "text", 6),
-                _soon("focus", "Focus", "moon", 6),
-                _soon("pomodoro", "Pomodoro", "timer", 6),
-                _soon("analyze", "Analizează pagina", "search", 6),
-                _soon("crawl-current", "Crawl site curent", "spider", 5),
-
-                _soon("mic-mute", "Mic mute", "mic-off", 6),
-                _soon("audio-out", "Ieșire audio", "headphones", 6),
+                *NEW_BUTTONS_SET2,
                 _app("safari", "Safari", "Safari"),
                 _app("mission", "Mission Control", "Mission Control"),
                 _app("activity", "Activity Monitor", "Activity Monitor", page="activity"),
@@ -110,7 +214,7 @@ DEFAULT_CONFIG = {
         {
             "name": "Control Mac",
             "buttons": [
-                _soon("windows", "Ferestre", "layout", 6),
+                NEW_WINDOWS,
                 {"id": "screenshot", "label": "Screenshot", "icon": {"type": "glyph", "name": "camera"},
                  "action": {"type": "screenshot"},
                  "long": {"type": "screenshot", "mode": "screen-recording", "label": "Înregistrare ecran"}},
@@ -123,16 +227,44 @@ DEFAULT_CONFIG = {
             ],
         },
     ],
-    # Paginile dedicate. "phase" = etapa din SPEC.md în care primesc controalele.
-    "pages": {
-        "spotify": {"title": "Spotify", "phase": 3},
-        "meet": {"title": "Google Meet", "phase": 3},
-        "activity": {"title": "Activity Monitor", "phase": 3},
-        "claude": {"title": "Claude", "phase": 4},
-        "sfrog": {"title": "Screaming Frog", "phase": 5},
-        "meetgeek": {"title": "MeetGeek", "phase": 5},
-    },
+    "pages": copy.deepcopy(DEFAULT_PAGES),
+    "integrations": copy.deepcopy(DEFAULT_INTEGRATIONS),
+    "profiles": copy.deepcopy(DEFAULT_PROFILES),
 }
+
+
+def migrate(data):
+    """Aduce o configurație mai veche la versiunea curentă, păstrând modificările utilizatorului."""
+    changed = False
+    if data.get("version", 1) < 2:
+        repl = {b["id"]: b for b in NEW_BUTTONS_SET2 + [NEW_WINDOWS]}
+        for s in data.get("sets", []):
+            for i, b in enumerate(s.get("buttons", [])):
+                if not b:
+                    continue
+                if b.get("action", {}).get("type") == "soon" and b.get("id") in repl:
+                    s["buttons"][i] = copy.deepcopy(repl[b["id"]])
+                elif b.get("id") == "spotify":
+                    b.setdefault("long", {"type": "spotify", "cmd": "playpause", "label": "Play / Pauză"})
+                    b.setdefault("dynamic", "spotify")
+                elif b.get("id") == "meet":
+                    b.setdefault("state", "meet_call")
+        pages = data.setdefault("pages", {})
+        for k, v in DEFAULT_PAGES.items():
+            if k not in pages:
+                pages[k] = copy.deepcopy(v)
+            else:
+                pages[k].pop("phase", None)
+                for kk, vv in v.items():
+                    pages[k].setdefault(kk, copy.deepcopy(vv))
+        integ = data.setdefault("integrations", {})
+        for k, v in DEFAULT_INTEGRATIONS.items():
+            integ.setdefault(k, copy.deepcopy(v))
+        data.setdefault("profiles", copy.deepcopy(DEFAULT_PROFILES))
+        data.setdefault("ui", {}).setdefault("profile", "auto")
+        data["version"] = 2
+        changed = True
+    return changed
 
 
 class Config:
@@ -156,6 +288,10 @@ class Config:
         except (OSError, ValueError) as e:
             print("  ! config.json invalid (%s) - folosesc configurația anterioară" % e)
             return False
+        if migrate(data):
+            print("  ✓ Configurația a fost actualizată la versiunea %s (butoanele tale au fost păstrate)." % data["version"])
+            self.save(data)
+            return True
         with self._lock:
             self.data = data
             self._mtime = os.path.getmtime(self.path)

@@ -10,7 +10,8 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
-from . import actions, admin, certs, icons, system
+from . import actions, admin, certs, icons, system, uiauto
+from .features import Features
 from .config import HOME, Config
 
 WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
@@ -22,6 +23,7 @@ STATIC = {
     "/app.js": ("app.js", "application/javascript"),
     "/app.css": ("app.css", "text/css"),
     "/glyphs.js": ("glyphs.js", "application/javascript"),
+    "/pages.js": ("pages.js", "application/javascript"),
     "/setup": ("setup.html", "text/html"),
     "/config.js": ("config.js", "application/javascript"),
     "/config.css": ("config.css", "text/css"),
@@ -108,12 +110,18 @@ class Deck:
         self.config = Config(on_change=lambda: self.hub.send({"type": "config"}))
         self.config.watch()
         self._last = None
+        self.features = Features(self)
 
     def state(self):
         v = system.get_volume()
+        live = self.features.snapshot()
+        t = actions.toggles()
+        tm = live.get("timer") or {}
+        t.update(focus=bool(live.get("focus")), mic_muted=bool(live.get("mic_muted")),
+                 timer=bool(tm.get("running")), meet_call=bool(live.get("meet_call")))
         return {"volume": v["volume"], "muted": v["muted"],
                 "brightness": system.get_brightness(),
-                "toggles": actions.toggles()}
+                "toggles": t, "live": live}
 
     def push_state(self, force=False):
         try:
@@ -131,6 +139,10 @@ class Deck:
             if self.hub.count():
                 self.push_state()
 
+    def ctx(self):
+        return {"state_changed": lambda: self.push_state(force=True), "features": self.features,
+                "deck": self, "cfg": self.config.get()}
+
     def run_button(self, button_id, long=False, choice=None):
         b = self.config.find_button(button_id)
         if not b:
@@ -140,9 +152,8 @@ class Deck:
             return {"ok": True, "msg": ""}
         if choice is not None:
             action = dict(action, choice=int(choice))
-        ctx = {"state_changed": lambda: self.push_state(force=True)}
         try:
-            msg = actions.execute(action, ctx)
+            msg = actions.execute(action, self.ctx())
             return {"ok": True, "msg": msg}
         except actions.Soon as e:
             return {"ok": False, "soon": e.phase, "msg": "Vine în etapa %s" % e.phase}
@@ -237,6 +248,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._events()
         if path == "/api/admin/meta" and self._is_local():
             return self._json(200, admin.meta())
+        if path.startswith("/api/page/"):
+            try:
+                return self._json(200, DECK.features.page_state(path[len("/api/page/"):]))
+            except Exception as e:
+                return self._json(200, {"error": str(e)})
         return self._json(404, {"error": "not found"})
 
     def _events(self):
@@ -281,6 +297,12 @@ class Handler(BaseHTTPRequestHandler):
             if not self._is_local():
                 return self._json(403, {"error": "doar de pe Mac"})
             return self._admin(path, body)
+        if path.startswith("/api/page/"):
+            try:
+                msg = DECK.features.page_cmd(path[len("/api/page/"):], body)
+                return self._json(200, {"ok": True, "msg": msg if isinstance(msg, str) else ""})
+            except Exception as e:
+                return self._json(200, {"ok": False, "msg": str(e)})
         try:
             if path == "/api/action":
                 return self._json(200, DECK.run_button(body.get("id"), bool(body.get("long")),
@@ -311,10 +333,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, {"ok": True})
             if path == "/api/admin/icon":
                 return self._json(200, {"ok": True, "file": admin.save_icon(body.get("id"), body.get("data"))})
+            if path == "/api/admin/uidump":
+                return self._json(200, {"ok": True, "items": uiauto.dump(body.get("app") or "")})
             if path == "/api/admin/test":
-                ctx = {"state_changed": lambda: DECK.push_state(force=True)}
                 try:
-                    return self._json(200, {"ok": True, "msg": actions.execute(body.get("action") or {}, ctx)})
+                    return self._json(200, {"ok": True, "msg": actions.execute(body.get("action") or {}, DECK.ctx())})
                 except actions.Soon as e:
                     return self._json(200, {"ok": False, "msg": "Vine în etapa %s" % e.phase})
         except Exception as e:
@@ -353,6 +376,7 @@ def serve(http_port=8765, https_port=8766):
     for s in servers:
         threading.Thread(target=s.serve_forever, daemon=True).start()
     threading.Thread(target=DECK.poll_forever, daemon=True).start()
+    DECK.features.start()
 
     print()
     print("  ┌─ Mac Deck pornit" + ("  (MOD SIMULAT)" if system.SIM else ""))
