@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import socket
 import sys
 import queue
 import secrets
@@ -214,7 +215,11 @@ class Handler(BaseHTTPRequestHandler):
         return json.loads(self.rfile.read(n) or b"{}") if n else {}
 
     def _is_local(self):
-        return self.client_address[0] in ("127.0.0.1", "::1", "::ffff:127.0.0.1")
+        """Cererea vine chiar de pe Mac (localhost, IPv4/IPv6 sau adresa Mac-ului în rețea)."""
+        ip = self.client_address[0]
+        if ip.startswith("::ffff:"):
+            ip = ip[7:]
+        return ip in ("127.0.0.1", "::1") or ip in LOCAL_IPS
 
     def _authed(self, query):
         if self._is_local():
@@ -394,6 +399,9 @@ class Handler(BaseHTTPRequestHandler):
         return self._json(404, {"error": "not found"})
 
 
+LOCAL_IPS = set()
+
+
 class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
@@ -402,14 +410,36 @@ class Server(ThreadingHTTPServer):
         pass  # conexiuni întrerupte, certificat încă neacceptat pe telefon etc.
 
 
+class Server6(Server):
+    """Ascultă pe IPv6 și IPv4 în același timp (pe macOS, „localhost” înseamnă întâi ::1)."""
+    address_family = socket.AF_INET6
+
+    def server_bind(self):
+        try:
+            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        except (OSError, AttributeError):
+            pass
+        super().server_bind()
+
+
+def make_server(port):
+    try:
+        return Server6(("::", port), Handler)
+    except OSError as e:
+        if getattr(e, "errno", None) in (48, 98):
+            raise
+        return Server(("0.0.0.0", port), Handler)  # fără IPv6
+
+
 def serve(http_port=8765, https_port=8766):
     global DECK
     DECK = Deck()
     host = system.hostname_local()
     ip = system.local_ip()
+    LOCAL_IPS.update({ip} - {"127.0.0.1"})
 
     try:
-        servers = [Server(("0.0.0.0", http_port), Handler)]
+        servers = [make_server(http_port)]
     except OSError as e:
         if getattr(e, "errno", None) in (48, 98):  # adresă ocupată (macOS / Linux)
             print("\n  Mac Deck rulează deja (probabil pornit automat, în fundal).")
@@ -421,7 +451,7 @@ def serve(http_port=8765, https_port=8766):
         crt, key = certs.ensure([host], [ip])
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ctx.load_cert_chain(crt, key)
-        s = Server(("0.0.0.0", https_port), Handler)
+        s = make_server(https_port)
         # handshake-ul se face în firul fiecărei cereri, nu blochează serverul
         s.socket = ctx.wrap_socket(s.socket, server_side=True, do_handshake_on_connect=False)
         servers.append(s)
