@@ -5,6 +5,8 @@
   python3 -m macdeck --no-autostart     oprește pornirea automată
   python3 -m macdeck --restart          repornește serverul din fundal
   python3 -m macdeck --status           arată dacă serverul rulează
+  python3 -m macdeck --no-code          fără cod de asociere în rețeaua locală
+  python3 -m macdeck --require-code     cere din nou codul de asociere
 """
 import argparse
 import sys
@@ -18,7 +20,22 @@ def main():
     p.add_argument("--no-autostart", action="store_true", help="oprește pornirea automată")
     p.add_argument("--restart", action="store_true", help="repornește serverul din fundal")
     p.add_argument("--status", action="store_true", help="starea serverului din fundal")
+    p.add_argument("--no-code", action="store_true", help="fără cod de asociere în rețeaua locală")
+    p.add_argument("--require-code", action="store_true", help="cere din nou codul de asociere")
     a = p.parse_args()
+    if a.no_code or a.require_code:
+        from .config import Config
+        c = Config()
+        data = c.get()
+        sec = data.setdefault("security", {})
+        if a.no_code:
+            sec["no_code"] = True
+        else:
+            sec.pop("no_code", None)
+        c.save(data)  # serverul pornit preia modificarea singur, în ~1 secundă
+        print("\n  ✓ " + ("Codul de asociere nu mai e necesar în rețeaua locală." if a.no_code
+                         else "Codul de asociere e din nou necesar.") + "\n")
+        return
     if a.autostart or a.no_autostart or a.restart or a.status:
         from . import autostart
         cmd = "install" if a.autostart else "uninstall" if a.no_autostart else "restart" if a.restart else "status"

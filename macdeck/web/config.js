@@ -643,7 +643,17 @@
         box.appendChild(kv('1. Prima dată, pe iPhone în Safari (instalează certificatul):', i.setup));
         box.appendChild(kv('   sau prin IP, dacă adresa .local nu merge:', i.setup_ip));
         box.appendChild(kv('2. Deck-ul (apoi Share → Add to Home Screen):', i.deck));
-        box.appendChild(h('div', { class: 'kv' }, [h('span', { text: '3. Cod de asociere:' }), h('div', { class: 'code', text: i.code || '' })]));
+        cfg.security = cfg.security || {};
+        var nc = h('input', { type: 'checkbox' }); nc.checked = !!cfg.security.no_code;
+        nc.addEventListener('change', function () {
+          if (nc.checked) cfg.security.no_code = true; else delete cfg.security.no_code;
+          changed(false); setTimeout(draw, 700);
+        });
+        box.appendChild(h('div', { class: 'auto' }, [
+          h('label', { class: 'check' }, [nc, 'Fără cod de asociere în rețeaua locală']),
+          h('p', { class: 'note', text: 'Orice telefon sau calculator conectat la același Wi-Fi poate folosi deck-ul fără cod. Din internet nu se poate accesa, iar configuratorul rămâne doar pe Mac. Recomandat doar pe rețeaua de acasă.' }),
+        ]));
+        if (!cfg.security.no_code) box.appendChild(h('div', { class: 'kv' }, [h('span', { text: '3. Cod de asociere:' }), h('div', { class: 'code', text: i.code || '' })]));
         box.appendChild(h('p', { class: 'note', text: 'Telefoane asociate: ' + (i.phones || 0) + '. După asociere, deck-ul se deschide direct de pe ecranul principal al iPhone-ului.' }));
         if (i.mac) {
           var auto = h('div', { class: 'auto' }, [

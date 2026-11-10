@@ -101,6 +101,18 @@ Opționale, pentru funcții anume:
    - **Share → Add to Home Screen**.
 3. Recomandat: **Auto-Lock → Never** și **Portrait Orientation Lock** oprit.
 
+### Fără cod de asociere
+
+Ca să nu mai introduci codul niciodată, dezactivează-l. Ai două variante:
+
+```bash
+python3 -m macdeck --no-code
+```
+
+sau configuratorul → **📱 iPhone** → **Fără cod de asociere în rețeaua locală**.
+
+Orice dispozitiv din rețeaua locală (același Wi-Fi) folosește atunci deck-ul direct; din internet nu e accesibil, iar configuratorul rămâne doar pe Mac. Recomandat pe rețeaua de acasă. Ca să reactivezi codul: `python3 -m macdeck --require-code`.
+
 ### Aplicația de pe ecranul principal (PWA)
 
 Deck-ul e o aplicație web instalabilă:

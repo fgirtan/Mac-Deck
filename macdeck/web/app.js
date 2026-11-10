@@ -87,8 +87,18 @@
   function setConn(ok) { $('dot').classList.toggle('ok', ok); }
 
   // ---------------------------------------------------------------- asociere
-  function showPair() { $('pair').classList.remove('hidden'); setTimeout(function () { $('pair-code').focus(); }, 50); }
-  function hidePair() { $('pair').classList.add('hidden'); }
+  var pairRetry = null;
+  function showPair() {
+    $('pair').classList.remove('hidden'); setTimeout(function () { $('pair-code').focus(); }, 50);
+    // dacă pe Mac se dezactivează codul, deck-ul se deschide singur în câteva secunde
+    clearInterval(pairRetry);
+    pairRetry = setInterval(function () {
+      fetch('/api/config', { cache: 'no-store', headers: { 'X-Deck-Token': token } }).then(function (r) {
+        if (r.ok) { clearInterval(pairRetry); boot(); }
+      }).catch(function () {});
+    }, 4000);
+  }
+  function hidePair() { clearInterval(pairRetry); $('pair').classList.add('hidden'); }
   $('pair-code').addEventListener('input', function (e) {
     var v = e.target.value.replace(/\D/g, '').slice(0, 6);
     e.target.value = v;

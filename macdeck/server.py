@@ -221,8 +221,23 @@ class Handler(BaseHTTPRequestHandler):
             ip = ip[7:]
         return ip in ("127.0.0.1", "::1") or ip in LOCAL_IPS
 
+    def _is_private(self):
+        """Adresă din rețeaua locală (Wi-Fi / LAN), nu din internet."""
+        import ipaddress
+        ip = self.client_address[0]
+        if ip.startswith("::ffff:"):
+            ip = ip[7:]
+        try:
+            a = ipaddress.ip_address(ip.split("%")[0])
+        except ValueError:
+            return False
+        return a.is_private or a.is_link_local or a.is_loopback
+
     def _authed(self, query):
         if self._is_local():
+            return True
+        sec = (DECK.config.get().get("security") or {})
+        if sec.get("no_code") and self._is_private():
             return True
         token = self.headers.get("X-Deck-Token") or (query.get("k") or [None])[0]
         return DECK.auth.ok(token)
@@ -374,7 +389,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/admin/info":
                 from . import autostart
                 info = dict(getattr(DECK, "urls", {}), code=DECK.auth.code, phones=len(DECK.auth.tokens),
-                            mac=system.IS_MAC)
+                            mac=system.IS_MAC,
+                            no_code=bool((DECK.config.get().get("security") or {}).get("no_code")))
                 if system.IS_MAC:
                     info.update(autostart=autostart.installed(), python=autostart.real_python())
                 return self._json(200, {"ok": True, "info": info})
@@ -480,7 +496,10 @@ def serve(http_port=8765, https_port=8766):
     else:
         print("  │  Pe iPhone deschide:   http://%s:%d" % (host, http_port))
     print("  │")
-    print("  │  Cod de asociere:  %s" % DECK.auth.code)
+    if (DECK.config.get().get("security") or {}).get("no_code"):
+        print("  │  Cod de asociere:  nu e necesar (dezactivat în configurator)")
+    else:
+        print("  │  Cod de asociere:  %s" % DECK.auth.code)
     print("  │  Configurator:     http://localhost:%d/config" % http_port)
     print("  │  Configurație:     %s" % DECK.config.path)
     print("  └─ Ctrl+C pentru oprire")
