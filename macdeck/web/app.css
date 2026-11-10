@@ -216,3 +216,11 @@ select.pin { appearance: none; -webkit-appearance: none; font-size: 14px; }
 .page { visibility: hidden; transition: transform .22s ease, visibility 0s linear .22s; }
 .page.open { visibility: visible; transition: transform .22s ease, visibility 0s; }
 .pnote { padding-left: 2px; }
+
+/* ---------- mod offline (Mac oprit / altă rețea) */
+body.offline #sets, body.offline #sliders { opacity: .4; filter: grayscale(.6); }
+#offline { position: fixed; top: max(8px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 25;
+  display: flex; align-items: center; gap: 8px; background: #1a0d0c; border: 1px solid #6b221e; color: #ffcfca;
+  padding: 7px 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; }
+#offline .dot { background: var(--red); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .3; } }

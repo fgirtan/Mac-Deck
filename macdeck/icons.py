@@ -139,9 +139,10 @@ def _png(w, h, rows):
             + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
 
 
-def app_icon_png(size=180):
+def _icon_rows(size, pad_ratio=0.16):
+    """Pixelii iconiței (fundal negru, grilă 3×3 de pătrate verzi), ca listă de rânduri RGB."""
     bg, green, dim = (0, 0, 0), (48, 209, 88), (20, 70, 36)
-    pad, gap = size * 0.16, size * 0.06
+    pad, gap = size * pad_ratio, size * 0.06 * (1 - (pad_ratio - 0.16))
     cell = (size - 2 * pad - 2 * gap) / 3
     rad = cell * 0.22
     rows = []
@@ -160,4 +161,39 @@ def app_icon_png(size=180):
                         col = green if (ix + iy) % 2 == 0 else dim
             row.extend(col)
         rows.append(row)
-    return _png(size, size, rows)
+    return rows
+
+
+_cache = {}
+
+
+def app_icon_png(size=180, maskable=False):
+    key = ("icon", size, maskable)
+    if key not in _cache:
+        # varianta „maskable” lasă o margine mai mare: Android/iOS pot decupa colțurile
+        _cache[key] = _png(size, size, _icon_rows(size, 0.24 if maskable else 0.16))
+    return _cache[key]
+
+
+SPLASH_SIZES = {(1125, 2436), (2436, 1125), (1170, 2532), (2532, 1170), (1179, 2556), (2556, 1179)}
+
+
+def splash_png(w, h):
+    """Ecran de pornire negru cu iconița în centru (pentru aplicația de pe ecranul principal iOS)."""
+    key = ("splash", w, h)
+    if key in _cache:
+        return _cache[key]
+    L = int(min(w, h) * 0.2)
+    logo = _icon_rows(L)
+    x0, y0 = (w - L) // 2, (h - L) // 2
+    black = [0] * (w * 3)
+    rows = []
+    for y in range(h):
+        if y0 <= y < y0 + L:
+            r = list(black)
+            r[x0 * 3:(x0 + L) * 3] = logo[y - y0]
+            rows.append(r)
+        else:
+            rows.append(black)
+    _cache[key] = _png(w, h, rows)
+    return _cache[key]

@@ -1,6 +1,7 @@
 """Pornire automată la login (LaunchAgent macOS): serverul rulează în fundal, fără Terminal,
 și repornește singur dacă se oprește."""
 import os
+import shutil
 import subprocess
 import sys
 
@@ -10,6 +11,9 @@ LABEL = "ro.macdeck.server"
 PLIST = os.path.expanduser("~/Library/LaunchAgents/%s.plist" % LABEL)
 LOG = os.path.join(HOME, "macdeck.log")
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Copie a aplicației într-un folder pe care macOS nu-l protejează. Un proces pornit de launchd
+# nu poate citi Documents / Desktop / Downloads (unde e adesea clonat proiectul) fără Full Disk Access.
+APP_DIR = os.path.join(HOME, "app")
 
 TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -64,11 +68,27 @@ def real_python():
     return fw if os.path.isdir(fw) else exe
 
 
+def sync_app():
+    """Copiază pachetul macdeck din proiect în ~/.macdeck/app (la instalare și la fiecare repornire)."""
+    src = os.path.join(REPO, "macdeck")
+    if os.path.realpath(src).startswith(os.path.realpath(APP_DIR)):
+        return  # rulăm deja din copie
+    dst = os.path.join(APP_DIR, "macdeck")
+    tmp = dst + ".new"
+    shutil.rmtree(tmp, ignore_errors=True)
+    shutil.copytree(src, tmp, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    shutil.rmtree(dst, ignore_errors=True)
+    os.replace(tmp, dst)
+    with open(os.path.join(APP_DIR, "SOURCE"), "w") as f:
+        f.write(REPO + "\n")
+
+
 def install():
     os.makedirs(os.path.dirname(PLIST), exist_ok=True)
     os.makedirs(HOME, exist_ok=True)
+    sync_app()
     with open(PLIST, "w") as f:
-        f.write(TEMPLATE.format(label=LABEL, python=sys.executable, repo=REPO, log=LOG))
+        f.write(TEMPLATE.format(label=LABEL, python=sys.executable, repo=APP_DIR, log=LOG))
     _launchctl("bootout", "%s/%s" % (domain(), LABEL))  # dacă era deja încărcat
     r = _launchctl("bootstrap", domain(), PLIST)
     if r.returncode != 0 and "already" not in (r.stderr or ""):
@@ -83,6 +103,8 @@ def uninstall():
 
 
 def restart():
+    if installed():
+        sync_app()  # preia modificările aduse de git pull
     _launchctl("kickstart", "-k", "%s/%s" % (domain(), LABEL))
 
 
@@ -112,4 +134,9 @@ def main(cmd):
     elif cmd == "status":
         print("  Pornire automată: %s · Server: %s" % ("instalată" if installed() else "neinstalată",
                                                       "rulează" if running() else "oprit"))
+        if os.path.exists(LOG):
+            print("\n  Ultimele linii din jurnal (%s):" % LOG)
+            with open(LOG, errors="replace") as f:
+                for line in f.readlines()[-15:]:
+                    print("    " + line.rstrip())
     return 0

@@ -35,6 +35,12 @@ Mai simplu: în Finder, dă **dublu-click pe `Porneste Mac Deck.command`** din f
 
 ### Dacă `localhost` nu se găsește
 
+- Verifică starea și ultimele linii din jurnal:
+  ```bash
+  cd ~/mac-deck && python3 -m macdeck --status
+  ```
+- Dacă ai activat pornirea automată înainte de 10 noiembrie și proiectul e în **Documents**, **Desktop** sau **Downloads**, reactivează pornirea automată, cu dublu-click pe `Pornire automata la login.command`. Versiunea nouă copiază serverul în `~/.macdeck/app`, unde macOS îl lasă să ruleze în fundal.
+
 - Serverul trebuie să **ruleze**: în Terminal trebuie să vezi caseta „Mac Deck pornit”. Dacă ai închis fereastra Terminal sau ai apăsat Ctrl+C, pornește-l din nou.
 - `localhost` funcționează **doar pe Mac**. Pe iPhone folosește adresa `.local` sau IP-ul afișat în Terminal.
 - Încearcă și `http://127.0.0.1:8765/config`.
@@ -94,6 +100,16 @@ Opționale, pentru funcții anume:
    - deschizi deck-ul la `https://<nume-mac>.local:8766` și introduci codul de asociere;
    - **Share → Add to Home Screen**.
 3. Recomandat: **Auto-Lock → Never** și **Portrait Orientation Lock** oprit.
+
+### Aplicația de pe ecranul principal (PWA)
+
+Deck-ul e o aplicație web instalabilă:
+- se deschide pe tot ecranul, cu iconiță și ecran de pornire negru;
+- se deschide instant, pentru că are fișierele în cache;
+- se actualizează singură după `git pull`;
+- când Mac-ul e oprit sau ești pe altă rețea, arată ultimele butoane estompate, cu „Mac-ul nu răspunde · se reconectează…”, și se conectează singură când Mac-ul revine.
+
+Ca să meargă și partea offline, adaug-o pe ecranul principal din adresa **https** (`https://<nume-mac>.local:8766`), după ce ai instalat certificatul. iOS ține aplicațiile de pe ecranul principal separat de Safari, așa că la prima deschidere din iconiță introduci încă o dată codul de asociere.
 
 ## Configurator
 

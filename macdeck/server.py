@@ -2,6 +2,7 @@
 în timp real (Server-Sent Events)."""
 import json
 import os
+import re
 import sys
 import queue
 import secrets
@@ -31,6 +32,22 @@ STATIC = {
     "/nosleep.mp4": ("nosleep.mp4", "video/mp4"),
     "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"),
 }
+
+
+_web_version = None
+
+
+def web_version():
+    """Versiunea fișierelor web (se schimbă la fiecare actualizare, ca telefonul să le reîncarce)."""
+    global _web_version
+    if _web_version is None:
+        import hashlib
+        h = hashlib.sha1()
+        for n in sorted(os.listdir(WEB)):
+            h.update(n.encode())
+            h.update(str(os.path.getmtime(os.path.join(WEB, n))).encode())
+        _web_version = h.hexdigest()[:10]
+    return _web_version
 
 
 # ------------------------------------------------------------------ evenimente către telefon
@@ -222,6 +239,18 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/apple-touch-icon.png":
             return self._send(200, icons.app_icon_png(), "image/png",
                               {"Cache-Control": "max-age=86400"})
+        m = re.match(r"^/icon-(192|512)(-maskable)?\.png$", path)
+        if m:
+            return self._send(200, icons.app_icon_png(int(m.group(1)), bool(m.group(2))), "image/png",
+                              {"Cache-Control": "max-age=86400"})
+        m = re.match(r"^/splash-(\d+)x(\d+)\.png$", path)
+        if m and (int(m.group(1)), int(m.group(2))) in icons.SPLASH_SIZES:
+            return self._send(200, icons.splash_png(int(m.group(1)), int(m.group(2))), "image/png",
+                              {"Cache-Control": "max-age=604800"})
+        if path == "/sw.js":
+            with open(os.path.join(WEB, "sw.js"), encoding="utf-8") as f:
+                js = f.read().replace("__VERSION__", web_version())
+            return self._send(200, js, "application/javascript", {"Service-Worker-Allowed": "/"})
         if path == "/ca.crt":
             with open(certs.CA_CRT, "rb") as f:
                 return self._send(200, f.read(), "application/x-x509-ca-cert",

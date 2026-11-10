@@ -31,15 +31,31 @@
     });
   }
 
+  var offline = false, bootTimer = null;
+  function setOffline(on) {
+    offline = on;
+    document.body.classList.toggle('offline', on);
+    $('offline').classList.toggle('hidden', !on);
+  }
   function boot() {
+    clearTimeout(bootTimer);
     api('/api/config').then(function (d) {
       cfg = d.config;
+      store.set('macdeck.cfg', cfg);   // ultima configurație, pentru afișare când Mac-ul e oprit
+      setOffline(false);
       hidePair();
       render();
       applyState(d.state);
       connect();
     }).catch(function (e) {
-      if (e.message !== 'neasociat') { setConn(false); setTimeout(boot, 2000); }
+      if (e.message === 'neasociat') return;
+      setConn(false);
+      if (!cfg) {
+        var cached = store.get('macdeck.cfg', null);
+        if (cached) { cfg = cached; render(); }
+      }
+      setOffline(true);
+      bootTimer = setTimeout(boot, 3000);
     });
   }
 
@@ -50,8 +66,12 @@
   function connect() {
     if (es) es.close();
     es = new EventSource('/api/events?k=' + encodeURIComponent(token));
-    es.onopen = function () { setConn(true); };
-    es.onerror = function () { setConn(false); };
+    es.onopen = function () { setConn(true); if (offline) boot(); };
+    es.onerror = function () {
+      setConn(false);
+      // dacă reconectarea nu reușește în câteva secunde, intrăm în modul offline și reîncercăm
+      setTimeout(function () { if (es && es.readyState !== 1 && !offline) { es.close(); es = null; setOffline(true); boot(); } }, 4000);
+    };
     es.onmessage = function (ev) {
       var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
       setConn(true);
@@ -209,6 +229,7 @@
 
   function runButton(b, long, choice) {
     var el = keyEls[b.id];
+    if (offline) { flash(el, 'fail'); return toast('Mac-ul nu e conectat', true); }
     var body = { id: b.id, long: !!long };
     if (choice !== undefined) body.choice = choice;
     api('/api/action', body).then(function (r) {
@@ -548,6 +569,11 @@
     var s = $('sets');
     ui.set = e.data.index; s.scrollTo({ left: ui.set * s.clientWidth, behavior: 'smooth' }); updateDots();
   });
+
+  // aplicație web instalabilă: se deschide instant și funcționează și când Mac-ul e oprit
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  }
 
   $('rotate').querySelector('div').innerHTML = glyph('rotate');
   boot();
