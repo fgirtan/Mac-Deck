@@ -20,6 +20,7 @@
   <div id="save-state" class="muted">Se încarcă…</div>
   <div class="actions">
     <button id="undo" class="btn" title="Anulează ultima modificare (⌘Z)" disabled>↶ Anulează</button>
+    <button id="open-phone" class="btn">📱 iPhone</button>
     <button id="open-settings" class="btn">Setări</button>
     <button id="export" class="btn">Export</button>
     <label class="btn">Import<input type="file" id="import" accept=".json,application/json" hidden></label>
@@ -51,6 +52,14 @@
 <section id="view-lists" class="view-page hidden"></section>
 <section id="view-integrations" class="view-page hidden"></section>
 <section id="view-diag" class="view-page hidden"></section>
+
+<dialog id="phone-dlg">
+  <form method="dialog">
+    <h2>Conectare iPhone și pornire</h2>
+    <div id="phone-info" class="phone-info">Se încarcă…</div>
+    <div class="dialog-actions"><button class="btn" value="cancel">Închide</button></div>
+  </form>
+</dialog>
 
 <dialog id="settings">
   <form method="dialog">

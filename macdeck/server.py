@@ -2,6 +2,7 @@
 în timp real (Server-Sent Events)."""
 import json
 import os
+import sys
 import queue
 import secrets
 import ssl
@@ -336,6 +337,22 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/admin/simfront" and system.SIM:
                 DECK.features._sim_front = body.get("app")
                 return self._json(200, {"ok": True})
+            if path == "/api/admin/info":
+                from . import autostart
+                info = dict(getattr(DECK, "urls", {}), code=DECK.auth.code, phones=len(DECK.auth.tokens),
+                            mac=system.IS_MAC)
+                if system.IS_MAC:
+                    info.update(autostart=autostart.installed(), python=autostart.real_python())
+                return self._json(200, {"ok": True, "info": info})
+            if path == "/api/admin/autostart":
+                from . import autostart
+                if not system.IS_MAC:
+                    return self._json(200, {"ok": False, "msg": "doar pe macOS"})
+                if body.get("on"):
+                    autostart.install()
+                    return self._json(200, {"ok": True, "msg": "Pornire automată activată. Închide fereastra Terminal: serverul rulează acum în fundal."})
+                autostart.uninstall()
+                return self._json(200, {"ok": True, "msg": "Pornire automată oprită."})
             if path == "/api/admin/uidump":
                 return self._json(200, {"ok": True, "items": uiauto.dump(body.get("app") or "")})
             if path == "/api/admin/test":
@@ -362,7 +379,14 @@ def serve(http_port=8765, https_port=8766):
     host = system.hostname_local()
     ip = system.local_ip()
 
-    servers = [Server(("0.0.0.0", http_port), Handler)]
+    try:
+        servers = [Server(("0.0.0.0", http_port), Handler)]
+    except OSError as e:
+        if getattr(e, "errno", None) in (48, 98):  # adresă ocupată (macOS / Linux)
+            print("\n  Mac Deck rulează deja (probabil pornit automat, în fundal).")
+            print("  Configurator: http://localhost:%d/config\n" % http_port)
+            sys.exit(3)
+        raise
     https_ok = False
     try:
         crt, key = certs.ensure([host], [ip])
@@ -376,6 +400,12 @@ def serve(http_port=8765, https_port=8766):
     except Exception as e:
         print("  ! HTTPS indisponibil (%s). Deck-ul merge pe HTTP." % e)
 
+    DECK.urls = {
+        "deck": ("https://%s:%d" % (host, https_port)) if https_ok else ("http://%s:%d" % (host, http_port)),
+        "deck_ip": ("https://%s:%d" % (ip, https_port)) if https_ok else ("http://%s:%d" % (ip, http_port)),
+        "setup": "http://%s:%d/setup" % (host, http_port),
+        "setup_ip": "http://%s:%d/setup" % (ip, http_port),
+    }
     for s in servers:
         threading.Thread(target=s.serve_forever, daemon=True).start()
     threading.Thread(target=DECK.poll_forever, daemon=True).start()

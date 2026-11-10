@@ -631,6 +631,36 @@
     };
     r.readAsText(f);
   });
+  $('open-phone').addEventListener('click', function () {
+    $('phone-dlg').showModal();
+    var box = $('phone-info');
+    function post(path, body) { return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then(function (r) { return r.json(); }); }
+    function draw() {
+      post('/api/admin/info').then(function (r) {
+        var i = r.info || {};
+        box.innerHTML = '';
+        function kv(label, val) { return h('div', { class: 'kv' }, [h('span', { text: label }), h('code', { text: val || '–' })]); }
+        box.appendChild(kv('1. Prima dată, pe iPhone în Safari (instalează certificatul):', i.setup));
+        box.appendChild(kv('   sau prin IP, dacă adresa .local nu merge:', i.setup_ip));
+        box.appendChild(kv('2. Deck-ul (apoi Share → Add to Home Screen):', i.deck));
+        box.appendChild(h('div', { class: 'kv' }, [h('span', { text: '3. Cod de asociere:' }), h('div', { class: 'code', text: i.code || '' })]));
+        box.appendChild(h('p', { class: 'note', text: 'Telefoane asociate: ' + (i.phones || 0) + '. După asociere, deck-ul se deschide direct de pe ecranul principal al iPhone-ului.' }));
+        if (i.mac) {
+          var auto = h('div', { class: 'auto' }, [
+            h('b', { text: i.autostart ? '✓ Pornire automată la login: activă' : 'Pornire automată la login: oprită' }),
+            h('p', { class: 'note', text: i.autostart
+              ? 'Serverul pornește singur cu Mac-ul și rulează în fundal, fără Terminal.'
+              : 'Activeaz-o ca serverul să pornească singur cu Mac-ul, în fundal. Apoi închide fereastra Terminal.' }),
+            i.autostart ? null : h('p', { class: 'note', text: 'Pentru scurtături, Claude, snippets etc., adaugă în System Settings → Privacy & Security → Accessibility: ' + i.python }),
+            h('button', { class: 'btn ' + (i.autostart ? 'danger' : 'primary'), type: 'button', text: i.autostart ? 'Oprește pornirea automată' : 'Activează pornirea automată',
+              onclick: function () { post('/api/admin/autostart', { on: !i.autostart }).then(function (x) { toast(x.msg || '', !x.ok); draw(); }); } }),
+          ]);
+          box.appendChild(auto);
+        }
+      }).catch(function () { box.textContent = 'Serverul nu răspunde.'; });
+    }
+    draw();
+  });
   $('undo').addEventListener('click', undo);
   document.addEventListener('keydown', function (e) {
     var tag = (e.target.tagName || '').toLowerCase();

@@ -40,6 +40,21 @@ Mai simplu: în Finder, dă **dublu-click pe `Porneste Mac Deck.command`** din f
 - Încearcă și `http://127.0.0.1:8765/config`.
 - Dacă Terminal afișează `Address already in use`, portul e ocupat (de ex. de prototipul vechi `deck_test.py`). Află ce îl ocupă cu `lsof -i :8765`, apoi închide procesul cu `kill <PID>`.
 
+### Pornire automată (recomandat)
+
+Ca să nu mai pornești nimic manual, dă **dublu-click pe `Pornire automata la login.command`**. Alternativ, folosește configuratorul → **📱 iPhone → Activează pornirea automată**.
+
+- Serverul pornește singur la fiecare login, rulează în fundal, fără fereastră Terminal, și repornește singur dacă se oprește.
+- Pe iPhone deschizi deck-ul direct de pe ecranul principal; telefonul rămâne asociat.
+- Adresele pentru iPhone și codul de asociere sunt în configurator → **📱 iPhone**.
+- În fundal, macOS atribuie permisiunile lui **Python**, nu lui Terminal. Adaugă Python în *System Settings → Privacy & Security → Accessibility*: calea exactă e afișată la instalare și în fereastra 📱 iPhone.
+- Oprire: dublu-click pe `Opreste pornirea automata.command`.
+- După `git pull`, repornește serverul:
+  ```bash
+  python3 -m macdeck --restart
+  ```
+- Jurnal: `~/.macdeck/macdeck.log`.
+
 Pentru actualizări: `cd ~/mac-deck && git pull`, apoi repornește serverul (Ctrl+C și din nou comanda de mai sus).
 
 ### Permisiuni și pregătire (o singură dată)
