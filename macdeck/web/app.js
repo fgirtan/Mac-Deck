@@ -27,11 +27,14 @@
     }
     return fetch(path, opts).then(function (r) {
       if (r.status === 401) { showPair(); throw new Error('neasociat'); }
-      return r.json();
+      return r.json().then(function (j) {
+        if (r.status >= 500) throw new Error('eroare server: ' + (j.error || j.msg || r.status));
+        return j;
+      }, function () { throw new Error('răspuns invalid de la Mac (' + r.status + ')'); });
     });
   }
 
-  var offline = false, bootTimer = null;
+  var offline = false, bootTimer = null, lastBootError = '';
   function setOffline(on) {
     offline = on;
     document.body.classList.toggle('offline', on);
@@ -41,6 +44,7 @@
   function boot() {
     clearTimeout(bootTimer);
     api('/api/config').then(function (d) {
+      if (!d || !d.config || !d.config.sets) throw new Error('configurație lipsă în răspuns');
       cfg = d.config;
       store.set('macdeck.cfg', cfg);   // ultima configurație, pentru afișare când Mac-ul e oprit
       setOffline(false);
@@ -51,6 +55,8 @@
       connect();
     }).catch(function (e) {
       if (e.message === 'neasociat') { hideBoot(); return; }
+      lastBootError = e.message;
+      $('offline-text').textContent = (/Failed to fetch|Load failed|NetworkError|network/i.test(e.message) ? 'Mac-ul nu răspunde' : 'Problemă: ' + e.message) + ' · se reconectează…';
       setConn(false);
       if (!cfg) {
         var cached = store.get('macdeck.cfg', null);
@@ -404,6 +410,7 @@
 
   function applyState(s) {
     if (!s) return;
+    state.errors = s.errors;
     ['volume', 'muted', 'brightness', 'toggles', 'live'].forEach(function (k) {
       if (k in s && !dragging[k]) state[k] = s[k];
     });
@@ -599,7 +606,7 @@
       'grilă: ' + r(sets) + ' · scroll ' + Math.round(sets.scrollLeft) + '/' + sets.scrollWidth,
       'primul set: ' + r(set0) + ' · prima tastă: ' + r(key0),
       'fereastră: ' + window.innerWidth + '×' + window.innerHeight + ' · set curent ' + ui.set + ' · pagină ' + (ui.page || '-') + ' · profil ' + (currentProfile() || '-'),
-      'erori: ' + (window.__bootErrors.length ? window.__bootErrors.join(' | ') : 'niciuna'),
+      'erori: ' + (window.__bootErrors.length ? window.__bootErrors.join(' | ') : 'niciuna') + (lastBootError ? ' · conectare: ' + lastBootError : '') + (state.errors ? ' · server: ' + state.errors.join(' | ') : ''),
       navigator.userAgent,
     ].join('\n');
   }

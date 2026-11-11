@@ -133,15 +133,28 @@ class Deck:
         self.features = Features(self)
 
     def state(self):
-        v = system.get_volume()
-        live = self.features.snapshot()
-        t = actions.toggles()
+        """Starea curentă. Fiecare parte e citită separat: o eroare (ex. volumul) nu blochează restul."""
+        errors = []
+
+        def safe(name, fn, default):
+            try:
+                return fn()
+            except Exception as e:
+                errors.append("%s: %s" % (name, e))
+                log_exc("stare/" + name)
+                return default
+        v = safe("volum", system.get_volume, {"volume": None, "muted": False})
+        live = safe("live", self.features.snapshot, {})
+        t = safe("comutatoare", actions.toggles, {})
         tm = live.get("timer") or {}
         t.update(focus=bool(live.get("focus")), mic_muted=bool(live.get("mic_muted")),
                  timer=bool(tm.get("running")), meet_call=bool(live.get("meet_call")))
-        return {"volume": v["volume"], "muted": v["muted"],
-                "brightness": system.get_brightness(),
-                "toggles": t, "live": live}
+        st = {"volume": v.get("volume"), "muted": v.get("muted"),
+              "brightness": safe("luminozitate", system.get_brightness, None),
+              "toggles": t, "live": live}
+        if errors:
+            st["errors"] = errors
+        return st
 
     def push_state(self, force=False):
         try:
@@ -180,6 +193,19 @@ class Deck:
 
 
 DECK = None
+_logged = {}
+
+
+def log_exc(where):
+    """Scrie eroarea în jurnal (~/.macdeck/macdeck.log), cel mult o dată pe minut pentru același loc."""
+    import traceback
+    now = time.time()
+    if now - _logged.get(where, 0) < 60:
+        return
+    _logged[where] = now
+    print("  ! eroare în %s:" % where)
+    print("    " + traceback.format_exc().replace("\n", "\n    "))
+    sys.stdout.flush()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -245,6 +271,18 @@ class Handler(BaseHTTPRequestHandler):
 
     # -------------------------------------------------------- GET
     def do_GET(self):
+        try:
+            return self._do_GET()
+        except (BrokenPipeError, ConnectionResetError):
+            raise
+        except Exception as e:
+            log_exc("GET " + self.path.split("?")[0])
+            try:
+                self._json(500, {"error": "%s: %s" % (type(e).__name__, e)})
+            except Exception:
+                pass
+
+    def _do_GET(self):
         url = urlsplit(self.path)
         path, query = url.path, parse_qs(url.query)
 
@@ -294,7 +332,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/config":
             return self._json(200, {"config": DECK.config.get(), "state": DECK.state(),
-                                    "sim": system.SIM})
+                                    "sim": system.SIM, "version": web_version()})
         if path == "/api/events":
             return self._events()
         if path == "/api/admin/meta" and self._is_local():
@@ -331,6 +369,18 @@ class Handler(BaseHTTPRequestHandler):
 
     # -------------------------------------------------------- POST
     def do_POST(self):
+        try:
+            return self._do_POST()
+        except (BrokenPipeError, ConnectionResetError):
+            raise
+        except Exception as e:
+            log_exc("POST " + self.path.split("?")[0])
+            try:
+                self._json(500, {"ok": False, "msg": "%s: %s" % (type(e).__name__, e)})
+            except Exception:
+                pass
+
+    def _do_POST(self):
         url = urlsplit(self.path)
         path, query = url.path, parse_qs(url.query)
         try:
@@ -424,7 +474,11 @@ class Server(ThreadingHTTPServer):
     allow_reuse_address = True
 
     def handle_error(self, request, client_address):
-        pass  # conexiuni întrerupte, certificat încă neacceptat pe telefon etc.
+        # conexiuni întrerupte sau certificat încă neacceptat pe telefon: normale, nu le scriem
+        exc = sys.exc_info()[1]
+        if isinstance(exc, (BrokenPipeError, ConnectionResetError, ssl.SSLError, TimeoutError, socket.timeout)):
+            return
+        log_exc("cerere de la %s" % (client_address[0],))
 
 
 class Server6(Server):
