@@ -774,6 +774,10 @@
       csvField('Nume buton Stop', 'stop_names'),
       field('Scurtătură start/stop (opțional)', textInput(mg, 'toggle_keys', { optional: true, placeholder: 'ex. cmd+shift+r' })),
     ]));
+    var np = pg('numpad');
+    v.appendChild(card('Num pad', 'Implicit, tastele ajung în aplicația din față. Opțional, o aplicație anume care e adusă în față înainte de fiecare tastă (ex. Microsoft Excel).', [
+      field('Trimite mereu către aplicația', textInput(np, 'send_to', { list: 'dl-apps', placeholder: 'aplicația din față', optional: true })),
+    ]));
     var tm = pg('timer');
     v.appendChild(card('Pomodoro', null, [h('div', { class: 'row2' }, [
       field('Lucru (minute)', textInput(tm, 'work', { type: 'number' })), field('Pauză (minute)', textInput(tm, 'break', { type: 'number' })),

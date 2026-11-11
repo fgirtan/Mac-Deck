@@ -51,6 +51,13 @@ return JSON.stringify({in_call:!!(B.leave||mic),mic_on:mic?mic.getAttribute('dat
 cam_on:cam?cam.getAttribute('data-is-muted')==='false':null,hand:pr(B.hand),captions:pr(B.captions),
 chat:pr(B.chat),people:pr(B.people),title:document.title});})(%s)"""
 
+# Tastele num pad-ului -> key code macOS (tastatura numerică reală, recunoscută de Excel, Numbers etc.)
+NUMPAD_CODES = {
+    "0": 82, "1": 83, "2": 84, "3": 85, "4": 86, "5": 87, "6": 88, "7": 89, "8": 91, "9": 92,
+    ".": 65, "*": 67, "+": 69, "clear": 71, "/": 75, "enter": 76, "-": 78, "=": 81,
+    "backspace": 51, "tab": 48, "esc": 53, "left": 123, "right": 124, "up": 126, "down": 125,
+}
+
 MEET_KEYS = {"mic": "cmd+d", "cam": "cmd+e", "hand": "ctrl+cmd+h", "chat": "ctrl+cmd+c",
              "people": "ctrl+cmd+p", "captions": "c"}
 
@@ -724,4 +731,21 @@ class Features:
             return self.audio_set(b.get("name"))
         if pid == "windows":
             return self.window(cmd)
+        if pid == "numpad" and cmd == "key":
+            keys = b.get("keys") or [b.get("key")]
+            codes = [NUMPAD_CODES[k] for k in keys if k in NUMPAD_CODES]
+            if not codes:
+                raise ValueError("tastă necunoscută")
+            target = (self.page_cfg("numpad").get("send_to") or "").strip()
+            lines = []
+            if target:
+                lines += ['tell application "%s" to activate' % target.replace('"', ""), "delay 0.15"]
+            lines.append('tell application "System Events"')
+            lines += ["key code %d" % c for c in codes]
+            lines.append("end tell")
+            if SIM:
+                log_sim("numpad", keys)
+            else:
+                osa(*lines)
+            return ""
         raise ValueError("comandă necunoscută")

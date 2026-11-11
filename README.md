@@ -203,6 +203,7 @@ Comportamentul se poate opri din configurator → **Setări**, la nivel general,
 | **Analizează pagina** | tab-ul activ din Chrome → PageSpeed, Search Console, Rich Results, Schema, site:, Wayback. |
 | **Ieșire audio** | lista dispozitivelor de ieșire; tap = comutare. |
 | **Ferestre** | fereastra din față: stânga, dreapta, sus, jos, tot ecranul, centru, alt monitor. |
+| **Num pad** | tastatură numerică pentru Mac: 0–9, + − × ÷ =, virgulă, Enter, ⌫, Tab, ← →, Esc. Trimite tastele numerice reale (recunoscute de Excel, Numbers, Sheets, Calculator) în aplicația din față; opțional, mereu către o aplicație anume. |
 
 Pe grilă mai sunt:
 - **Următorul meeting**: titlul și minutele rămase; tap = intri în Meet.

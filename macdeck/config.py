@@ -99,6 +99,7 @@ DEFAULT_PAGES = {
     },
     "audio": {"title": "Ieșire audio"},
     "windows": {"title": "Ferestre"},
+    "numpad": {"title": "Num pad", "send_to": ""},
 }
 
 DEFAULT_INTEGRATIONS = {
@@ -148,10 +149,11 @@ NEW_BUTTONS_SET2 = [
 ]
 
 NEW_WINDOWS = _page_btn("windows", "Ferestre", "layout", "windows")
+NEW_NUMPAD = _page_btn("numpad", "Num pad", "numpad", "numpad", auto_page=False)
 
 
 DEFAULT_CONFIG = {
-    "version": 2,
+    "version": 3,
     "ui": {
         "columns": 5,
         "rows": 3,
@@ -226,6 +228,7 @@ DEFAULT_CONFIG = {
                  "action": {"type": "display_sleep"}},
                 {"id": "caffeinate", "label": "Ține treaz", "icon": {"type": "glyph", "name": "coffee"},
                  "action": {"type": "caffeinate"}, "state": "caffeinate"},
+                NEW_NUMPAD,
             ],
         },
     ],
@@ -265,6 +268,23 @@ def migrate(data):
         data.setdefault("profiles", copy.deepcopy(DEFAULT_PROFILES))
         data.setdefault("ui", {}).setdefault("profile", "auto")
         data["version"] = 2
+        changed = True
+    if data.get("version", 1) < 3:
+        data.setdefault("pages", {}).setdefault("numpad", copy.deepcopy(DEFAULT_PAGES["numpad"]))
+        ids = {b.get("id") for s in data.get("sets", []) for b in s.get("buttons", []) if b}
+        if "numpad" not in ids and data.get("sets"):
+            cols = (data.get("ui") or {}).get("columns", 5) * (data.get("ui") or {}).get("rows", 3)
+            # pe setul cu „Ferestre” (Control Mac), altfel pe ultimul set; primul loc liber
+            target = next((s for s in data["sets"] if any(b and b.get("id") == "windows" for b in s.get("buttons", []))),
+                          data["sets"][-1])
+            btns = target.setdefault("buttons", [])
+            slot = next((i for i, b in enumerate(btns) if b is None), len(btns))
+            if slot < cols:
+                if slot == len(btns):
+                    btns.append(copy.deepcopy(NEW_NUMPAD))
+                else:
+                    btns[slot] = copy.deepcopy(NEW_NUMPAD)
+        data["version"] = 3
         changed = True
     return changed
 

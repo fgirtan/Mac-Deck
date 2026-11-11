@@ -376,5 +376,43 @@
     return { el: h('div', { class: 'pg' }, [grid, h('div', { class: 'pnote', text: 'Se aplică ferestrei din față de pe Mac.' })]), poll: 0, update: function () {} };
   };
 
+  // ---------------------------------------------------------------- Num pad
+  P.numpad = function (ctx) {
+    var shown = h('div', { class: 'np-display' }), buf = '', clearT = null;
+    var queue = Promise.resolve();   // tastele pleacă pe rând, în ordinea apăsării
+    function show() { shown.textContent = buf.slice(-28) || ' '; shown.classList.toggle('empty', !buf); }
+    function send(key, label) {
+      if (label !== undefined) {
+        clearTimeout(clearT);
+        if (key === 'backspace') buf = buf.slice(0, -1);
+        else if (key === 'enter' || key === 'esc' || key === 'clear') { buf += label; clearT = setTimeout(function () { buf = ''; show(); }, 900); }
+        else if (label) buf += label;
+        show();
+      }
+      queue = queue.then(function () {
+        return ctx.call({ cmd: 'key', key: key }).then(function (r) { if (!r.ok) ctx.toast(r.msg || 'Eroare', true); });
+      }).catch(function () { ctx.toast('Mac-ul nu răspunde', true); });
+    }
+    // aranjament de tastatură numerică: 5 coloane × 5 rânduri
+    var keys = [
+      ['clear', 'C', 'fn'], ['=', '=', 'fn'], ['/', '÷', 'op'], ['*', '×', 'op'], ['backspace', glyph('backspace'), 'fn'],
+      ['7', '7'], ['8', '8'], ['9', '9'], ['-', '−', 'op'], ['tab', 'Tab', 'fn'],
+      ['4', '4'], ['5', '5'], ['6', '6'], ['+', '+', 'op tall'], ['left', '←', 'fn'],
+      ['1', '1'], ['2', '2'], ['3', '3'], ['right', '→', 'fn'],
+      ['0', '0', 'wide'], ['.', ','], ['enter', '⏎', 'enter tall2'], ['esc', 'Esc', 'fn'],
+    ];
+    var grid = h('div', { class: 'np' });
+    keys.forEach(function (k) {
+      var b = h('button', { class: 'np-k ' + (k[2] || ''), html: k[1] });
+      var echo = { clear: '', backspace: undefined, tab: '⇥', left: '', right: '', esc: '' }[k[0]];
+      var label = k[0] in { clear: 1, backspace: 1, tab: 1, left: 1, right: 1, esc: 1 } ? echo : (k[0] === 'enter' ? '⏎' : k[1]);
+      ctx.press(b, function () { ctx.feedback(); send(k[0], k[0] === 'backspace' ? '' : label); }, null);
+      grid.appendChild(b);
+    });
+    var note = h('div', { class: 'pnote np-note', text: 'Tastele ajung în aplicația din față de pe Mac, ca de la o tastatură numerică.' });
+    show();
+    return { el: h('div', { class: 'pg np-wrap' }, [h('div', { class: 'np-top' }, [shown, note]), grid]), poll: 0, update: function () {} };
+  };
+
   window.DeckPages = P;
 })();

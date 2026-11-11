@@ -43,6 +43,8 @@ window.GLYPHS = {
   'win-bottom': '<rect x="3" y="4" width="18" height="16" rx="2"/><rect x="4.5" y="12.5" width="15" height="6" rx="1" fill="currentColor" stroke="none" opacity=".7"/>',
   'win-full': '<rect x="3" y="4" width="18" height="16" rx="2"/><rect x="4.5" y="5.5" width="15" height="13" rx="1" fill="currentColor" stroke="none" opacity=".7"/>',
   'win-center': '<rect x="3" y="4" width="18" height="16" rx="2"/><rect x="7" y="7.5" width="10" height="9" rx="1" fill="currentColor" stroke="none" opacity=".7"/>',
+  numpad: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="8.5" cy="8" r=".9" fill="currentColor"/><circle cx="12" cy="8" r=".9" fill="currentColor"/><circle cx="15.5" cy="8" r=".9" fill="currentColor"/><circle cx="8.5" cy="12" r=".9" fill="currentColor"/><circle cx="12" cy="12" r=".9" fill="currentColor"/><circle cx="15.5" cy="12" r=".9" fill="currentColor"/><circle cx="8.5" cy="16" r=".9" fill="currentColor"/><circle cx="12" cy="16" r=".9" fill="currentColor"/><circle cx="15.5" cy="16" r=".9" fill="currentColor"/>',
+  backspace: '<path d="M21 5H8l-6 7 6 7h13a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="m12 9 6 6M18 9l-6 6"/>',
   'win-next': '<rect x="2" y="6" width="9" height="12" rx="1.5"/><rect x="13" y="6" width="9" height="12" rx="1.5"/><path d="M8 12h8M14 10l2 2-2 2"/>',
 };
 window.glyph = function (name, cls) {

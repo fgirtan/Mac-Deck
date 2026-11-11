@@ -242,3 +242,23 @@ body.offline #sets, body.offline #sliders { opacity: .4; filter: grayscale(.6); 
 .set { height: 100%; min-height: 0; }
 .key { min-height: 44px; }
 @media (orientation: portrait) { #deck { height: auto; flex: 1; } #sets { height: calc(100% - 18px); } }
+
+/* ---------- Num pad */
+.np-wrap { gap: 6px; }
+.np-top { display: flex; align-items: center; gap: 10px; }
+.np-display { flex: 1; height: 34px; border-radius: 10px; background: #050806; border: 1px solid var(--line); color: var(--green);
+  font: 600 20px ui-monospace, Menlo, monospace; display: flex; align-items: center; justify-content: flex-end; padding: 0 12px; overflow: hidden; white-space: nowrap; }
+.np-display.empty { color: #1f3326; }
+.np-note { max-width: 46%; font-size: 11px; line-height: 1.3; }
+.np { flex: 1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 6px; min-height: 0; }
+.np-k { border: 1px solid var(--line); background: var(--key); border-radius: 12px; color: var(--text); font: 600 22px -apple-system, system-ui, sans-serif;
+  display: flex; align-items: center; justify-content: center; padding: 0; min-height: 0; transition: transform .06s, background .06s; }
+.np-k .g { width: 24px; height: 24px; color: var(--dim); }
+.np-k.down { transform: scale(.94); background: var(--key-hi); border-color: var(--green-dim); }
+.np-k.op { color: var(--green); font-size: 24px; }
+.np-k.fn { color: var(--dim); font-size: 15px; }
+.np-k.enter { background: #0f2a17; border-color: var(--green-dim); color: var(--green); }
+.np-k.tall { grid-row: span 2; grid-column: 4; }
+.np-k.tall2 { grid-row: span 1; }
+.np-k.wide { grid-column: span 2; }
+@media (orientation: portrait) { .np-note { display: none; } .np-k { font-size: 26px; } }

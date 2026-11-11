@@ -617,9 +617,12 @@
   // dacă după încărcare nu se vede nicio tastă, afișăm automat diagnosticul
   setTimeout(function check() {
     if (!cfg) return setTimeout(check, 2000);
-    var k = $('sets').querySelector('.key:not(.empty)');
-    var b = k && k.getBoundingClientRect();
-    if (!ui.page && (!k || b.width < 5 || b.height < 5 || b.right < 0 || b.left > window.innerWidth)) showDiag();
+    if (ui.page || document.querySelector('.page.open')) return;
+    var cur = $('sets').children[ui.set] || $('sets').children[0];
+    var k = cur && cur.querySelector('.key:not(.empty)');
+    if (!k) return;   // set gol: nimic de verificat
+    var b = k.getBoundingClientRect();
+    if (b.width < 5 || b.height < 5) showDiag();   // tastele există, dar au dimensiune zero
   }, 3500);
   // apăsare lungă pe punctul de conexiune = diagnostic
   bindPress($('status'), function () {}, function () { showDiag(); });
