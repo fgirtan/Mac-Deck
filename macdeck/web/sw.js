@@ -18,7 +18,7 @@ function timeout(ms) { return new Promise(function (_, rej) { setTimeout(functio
 self.addEventListener('fetch', function (e) {
   var req = e.request, url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== location.origin) return;
-  if (url.pathname.indexOf('/api/') === 0 || url.pathname === '/config' || url.pathname === '/setup') return; // mereu live
+  if (url.pathname.indexOf('/api/') === 0 || url.pathname === '/config' || url.pathname === '/setup' || url.pathname === '/reset') return; // mereu live
 
   // iconițele butoanelor: din cache, actualizate în fundal
   if (url.pathname.indexOf('/icons/') === 0 || url.pathname.indexOf('/splash-') === 0) {
@@ -37,6 +37,11 @@ self.addEventListener('fetch', function (e) {
     if (r && r.ok) { var copy = r.clone(); caches.open(VERSION).then(function (c) { c.put(key, copy); }); }
     return r;
   }).catch(function () {
-    return caches.match(key).then(function (hit) { return hit || caches.match('/'); });
+    return caches.match(key).then(function (hit) {
+      return hit || caches.match('/').then(function (home) {
+        return home || new Response('<!doctype html><meta name="viewport" content="width=device-width"><body style="background:#000;color:#ccc;font:16px -apple-system;padding:30px">Mac Deck: Mac-ul nu răspunde. Verifică dacă serverul rulează și dacă telefonul e pe același Wi-Fi.</body>',
+          { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      });
+    });
   }));
 });

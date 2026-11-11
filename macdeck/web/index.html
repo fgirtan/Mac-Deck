@@ -17,10 +17,30 @@
 <link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash-1179x2556.png">
 <link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="/splash-2556x1179.png">
 <link rel="manifest" href="/manifest.webmanifest">
+<style>
+  /* afișat înainte de orice altceva: fundal negru + stare, ca să nu rămână niciodată un ecran alb */
+  html, body { background: #000; color: #7d8f82; margin: 0; }
+  #boot { position: fixed; inset: 0; z-index: 100; background: #000; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 10px; font: 15px -apple-system, system-ui, sans-serif; text-align: center; padding: 20px; }
+  #boot b { color: #30d158; font-size: 18px; }
+  #boot pre { color: #ffb4ae; font-size: 12px; white-space: pre-wrap; max-width: 90vw; text-align: left; margin: 0; }
+  #boot a { color: #30d158; }
+</style>
+<script>
+  // orice eroare din aplicație apare pe ecran (pentru diagnostic)
+  window.__bootErrors = [];
+  window.addEventListener('error', function (e) {
+    window.__bootErrors.push((e.message || 'eroare') + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : ''));
+    var b = document.getElementById('boot');
+    if (b) { b.style.display = 'flex'; document.getElementById('boot-err').textContent = window.__bootErrors.join('\n'); document.getElementById('boot-msg').textContent = 'A apărut o eroare'; }
+  });
+</script>
 <link rel="stylesheet" href="/app.css">
 <title>Mac Deck</title>
 </head>
 <body>
+  <div id="boot"><b>Mac Deck</b><span id="boot-msg">Se încarcă…</span><pre id="boot-err"></pre>
+    <small>Dacă rămâne așa: <a href="/reset">resetează aplicația</a></small></div>
   <main id="main">
     <section id="deck">
       <div id="sets"></div>

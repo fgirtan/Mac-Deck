@@ -37,23 +37,26 @@
     document.body.classList.toggle('offline', on);
     $('offline').classList.toggle('hidden', !on);
   }
+  function hideBoot() { var b = $('boot'); if (b && !window.__bootErrors.length) b.style.display = 'none'; }
   function boot() {
     clearTimeout(bootTimer);
     api('/api/config').then(function (d) {
       cfg = d.config;
       store.set('macdeck.cfg', cfg);   // ultima configurație, pentru afișare când Mac-ul e oprit
       setOffline(false);
+      hideBoot();
       hidePair();
       render();
       applyState(d.state);
       connect();
     }).catch(function (e) {
-      if (e.message === 'neasociat') return;
+      if (e.message === 'neasociat') { hideBoot(); return; }
       setConn(false);
       if (!cfg) {
         var cached = store.get('macdeck.cfg', null);
         if (cached) { cfg = cached; render(); }
       }
+      if (cfg) hideBoot(); else $('boot-msg').textContent = 'Nu pot ajunge la Mac. Reîncerc…';
       setOffline(true);
       bootTimer = setTimeout(boot, 3000);
     });

@@ -28,6 +28,7 @@ STATIC = {
     "/glyphs.js": ("glyphs.js", "application/javascript"),
     "/pages.js": ("pages.js", "application/javascript"),
     "/setup": ("setup.html", "text/html"),
+    "/reset": ("reset.html", "text/html"),
     "/config.js": ("config.js", "application/javascript"),
     "/config.css": ("config.css", "text/css"),
     "/nosleep.mp4": ("nosleep.mp4", "video/mp4"),

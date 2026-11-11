@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resetare Mac Deck</title>
+<style>body{background:#000;color:#e9f5ec;font:16px -apple-system,system-ui,sans-serif;padding:30px;text-align:center}b{color:#30d158}a{color:#30d158}</style>
+</head><body>
+<p><b>Mac Deck</b></p><p id="m">Se resetează…</p>
+<script>
+(async function () {
+  try {
+    if (navigator.serviceWorker) { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); }
+    if (window.caches) { for (const k of await caches.keys()) await caches.delete(k); }
+    try { localStorage.clear(); } catch (e) {}
+    document.getElementById('m').innerHTML = 'Gata. Aplicația a fost resetată.<br><br><a href="/">Deschide deck-ul</a>';
+  } catch (e) { document.getElementById('m').textContent = 'Eroare: ' + e.message; }
+})();
+</script></body></html>
