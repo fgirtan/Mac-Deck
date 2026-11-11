@@ -618,11 +618,15 @@
   setTimeout(function check() {
     if (!cfg) return setTimeout(check, 2000);
     if (ui.page || document.querySelector('.page.open')) return;
-    var cur = $('sets').children[ui.set] || $('sets').children[0];
-    var k = cur && cur.querySelector('.key:not(.empty)');
-    if (!k) return;   // set gol: nimic de verificat
-    var b = k.getBoundingClientRect();
-    if (b.width < 5 || b.height < 5) showDiag();   // tastele există, dar au dimensiune zero
+    var total = cfg.sets.reduce(function (n, x) { return n + x.buttons.filter(Boolean).length; }, 0);
+    if (!total) return;   // configurație fără butoane
+    var all = $('sets').querySelectorAll('.key:not(.empty)');
+    if (!all.length) return showDiag();   // config are butoane, dar grila e goală
+    var vis = Array.prototype.some.call(all, function (k) {
+      var b = k.getBoundingClientRect();
+      return b.width > 5 && b.height > 5 && b.right > 0 && b.left < window.innerWidth && b.bottom > 0 && b.top < window.innerHeight;
+    });
+    if (!vis) showDiag();   // tastele există, dar niciuna nu se vede
   }, 3500);
   // apăsare lungă pe punctul de conexiune = diagnostic
   bindPress($('status'), function () {}, function () { showDiag(); });
