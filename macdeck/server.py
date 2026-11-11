@@ -443,8 +443,20 @@ class Handler(BaseHTTPRequestHandler):
                             mac=system.IS_MAC,
                             no_code=bool((DECK.config.get().get("security") or {}).get("no_code")))
                 if system.IS_MAC:
-                    info.update(autostart=autostart.installed(), python=autostart.real_python())
+                    from . import macapp
+                    info.update(autostart=autostart.installed(), python=autostart.real_python(),
+                                app=os.path.exists(macapp.APP))
                 return self._json(200, {"ok": True, "info": info})
+            if path == "/api/admin/update":
+                from . import macapp
+                macapp.run_update()
+                return self._json(200, {"ok": True, "msg": "Se caută actualizări… (vei primi o notificare pe Mac)"})
+            if path == "/api/admin/restart":
+                from . import autostart
+                if not (system.IS_MAC and autostart.installed()):
+                    return self._json(200, {"ok": False, "msg": "Repornirea automată merge doar cu pornirea automată activă."})
+                threading.Timer(0.5, autostart.restart).start()
+                return self._json(200, {"ok": True, "msg": "Serverul repornește…"})
             if path == "/api/admin/autostart":
                 from . import autostart
                 if not system.IS_MAC:

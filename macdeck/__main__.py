@@ -7,6 +7,7 @@
   python3 -m macdeck --status           arată dacă serverul rulează
   python3 -m macdeck --no-code          fără cod de asociere în rețeaua locală
   python3 -m macdeck --require-code     cere din nou codul de asociere
+  python3 -m macdeck --install-app      creează aplicația „Mac Deck” în ~/Applications
 """
 import argparse
 import sys
@@ -22,7 +23,14 @@ def main():
     p.add_argument("--status", action="store_true", help="starea serverului din fundal")
     p.add_argument("--no-code", action="store_true", help="fără cod de asociere în rețeaua locală")
     p.add_argument("--require-code", action="store_true", help="cere din nou codul de asociere")
+    p.add_argument("--install-app", action="store_true", help="creează aplicația Mac Deck în ~/Applications")
     a = p.parse_args()
+    if a.install_app:
+        from . import macapp
+        path = macapp.make_app()
+        print("\n  ✓ Aplicația a fost creată: %s" % path)
+        print("    O găsești în Launchpad și cu ⌘ Space → „Mac Deck”. Poți s-o tragi în Dock.\n")
+        return
     if a.no_code or a.require_code:
         from .config import Config
         c = Config()

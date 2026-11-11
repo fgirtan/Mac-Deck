@@ -17,7 +17,29 @@ Specificațiile complete sunt în [SPEC.md](SPEC.md).
 
 Totul a fost testat în modul simulat. Automatizările care depind de aplicațiile tale (Claude, MeetGeek, Screaming Frog, Spotify Web, Meet) pot avea nevoie de mici ajustări din configurator, după ce le încerci pe Mac.
 
-## Instalare pe Mac
+## Instalare rapidă (o singură dată)
+
+1. Descarcă proiectul, dacă nu l-ai descărcat deja:
+   ```bash
+   git clone https://github.com/fgirtan/mac-deck.git ~/mac-deck
+   ```
+2. În Finder, în folderul **mac-deck**, dă **dublu-click pe `Instaleaza Mac Deck.command`**.
+
+Gata. De acum:
+- **Serverul pornește singur** la fiecare login și rulează în fundal, fără Terminal.
+- **Aplicația „Mac Deck”** apare în Launchpad și în Spotlight (⌘ Space → „Mac Deck”). Poți s-o tragi în Dock. La fiecare deschidere:
+  - descarcă actualizările;
+  - repornește serverul dacă e nevoie;
+  - deschide configuratorul.
+- **În configurator:**
+  - butonul **⟳ Actualizează** face același lucru, direct din browser;
+  - **📱 iPhone → Repornește serverul**;
+  - adresele pentru telefon.
+- Pe iPhone deschizi **Deck** de pe ecranul principal. Cu `python3 -m macdeck --no-code` sau bifa din 📱 iPhone, nu mai ai nevoie nici de cod.
+
+La prima actualizare, macOS poate întreba dacă „Mac Deck” are voie să acceseze folderul în care e proiectul (de ex. Documents): alege **Allow**.
+
+## Instalare pe Mac (detaliat)
 
 Ai nevoie doar de Python 3, care vine cu Command Line Tools de la Apple. Dacă nu sunt instalate, macOS le oferă automat la prima comandă `python3` sau `git`.
 

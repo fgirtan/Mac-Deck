@@ -94,6 +94,13 @@ def install():
     if r.returncode != 0 and "already" not in (r.stderr or ""):
         raise RuntimeError(r.stderr.strip() or "launchctl a eșuat")
     _launchctl("kickstart", "-k", "%s/%s" % (domain(), LABEL))
+    # aplicația „Mac Deck” din ~/Applications (dacă nu există deja)
+    try:
+        from . import macapp
+        if not os.path.exists(macapp.APP):
+            macapp.make_app()
+    except Exception as e:
+        print("  ! nu am putut crea aplicația Mac Deck: %s" % e)
 
 
 def uninstall():
@@ -125,6 +132,9 @@ def main(cmd):
         print("    (în fereastra de alegere apasă ⌘⇧G și lipește calea de mai sus)")
         print()
         print("  Jurnal: " + LOG)
+        print()
+        print("  Aplicația „Mac Deck” e în ~/Applications (o găsești în Launchpad și cu ⌘ Space).")
+        print("  O deschizi ca să actualizezi deck-ul și să deschizi configuratorul. Poți s-o tragi în Dock.")
     elif cmd == "uninstall":
         uninstall()
         print("  ✓ Pornirea automată a fost oprită. Serverul nu mai rulează în fundal.")

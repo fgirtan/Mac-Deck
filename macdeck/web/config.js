@@ -631,6 +631,28 @@
     };
     r.readAsText(f);
   });
+  // ---------------------------------------------------------------- actualizare / repornire
+  function waitAndReload(msg) {
+    setState(msg, '');
+    var start = Date.now(), wentDown = false;
+    var iv = setInterval(function () {
+      fetch('/api/config', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+        if (wentDown || Date.now() - start > 25000) { clearInterval(iv); location.reload(); }
+        else if (d.version && d.version !== window.__cfgVersion) { clearInterval(iv); location.reload(); }
+      }).catch(function () { wentDown = true; });
+    }, 1500);
+  }
+  function adminPost(path) {
+    return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(function (r) { return r.json(); });
+  }
+  $('do-update').addEventListener('click', function () {
+    adminPost('/api/admin/update').then(function (r) {
+      toast(r.msg || '', !r.ok);
+      if (r.ok) waitAndReload('Se actualizează…');
+    }).catch(function () { toast('Serverul nu răspunde', true); });
+  });
+  fetch('/api/config', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { window.__cfgVersion = d.version; }).catch(function () {});
+
   $('open-phone').addEventListener('click', function () {
     $('phone-dlg').showModal();
     var box = $('phone-info');
@@ -662,6 +684,10 @@
               ? 'Serverul pornește singur cu Mac-ul și rulează în fundal, fără Terminal.'
               : 'Activeaz-o ca serverul să pornească singur cu Mac-ul, în fundal. Apoi închide fereastra Terminal.' }),
             i.autostart ? null : h('p', { class: 'note', text: 'Pentru scurtături, Claude, snippets etc., adaugă în System Settings → Privacy & Security → Accessibility: ' + i.python }),
+            i.autostart ? h('button', { class: 'btn', type: 'button', text: '↻ Repornește serverul', onclick: function () {
+              adminPost('/api/admin/restart').then(function (x) { toast(x.msg || '', !x.ok); if (x.ok) { $('phone-dlg').close(); waitAndReload('Serverul repornește…'); } });
+            } }) : null,
+            h('p', { class: 'note', text: i.app ? '✓ Aplicația „Mac Deck” e instalată: o deschizi din Launchpad sau cu ⌘ Space ca să actualizezi și să deschizi configuratorul.' : 'Aplicația „Mac Deck” se creează la activarea pornirii automate.' }),
             h('button', { class: 'btn ' + (i.autostart ? 'danger' : 'primary'), type: 'button', text: i.autostart ? 'Oprește pornirea automată' : 'Activează pornirea automată',
               onclick: function () { post('/api/admin/autostart', { on: !i.autostart }).then(function (x) { toast(x.msg || '', !x.ok); draw(); }); } }),
           ]);
