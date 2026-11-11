@@ -137,6 +137,9 @@
 
   function render() {
     var cols = cfg.ui.columns || 5, rows = cfg.ui.rows || 3, per = cols * rows;
+    // telefon ținut vertical: aceleași butoane, grila întoarsă (ex. 5×3 devine 3×5)
+    renderedPortrait = isPortrait();
+    if (renderedPortrait && cols > rows) { var t = cols; cols = rows; rows = t; }
     var sets = $('sets');
     sets.innerHTML = '';
     keyEls = {};
@@ -205,7 +208,10 @@
     var d = $('dots').children;
     for (var i = 0; i < d.length; i++) d[i].classList.toggle('cur', i === ui.set);
   }
+  var renderedPortrait = null;
+  function isPortrait() { return window.innerHeight > window.innerWidth; }
   window.addEventListener('resize', function () {
+    if (cfg && isPortrait() !== renderedPortrait) { render(); applyState(state); }
     var s = $('sets'); s.scrollLeft = ui.set * s.clientWidth;
   });
 
@@ -582,6 +588,41 @@
     var s = $('sets');
     ui.set = e.data.index; s.scrollTo({ left: ui.set * s.clientWidth, behavior: 'smooth' }); updateDots();
   });
+
+  // ---------------------------------------------------------------- diagnostic (?debug sau grilă goală)
+  function diagnostics() {
+    var sets = $('sets'), set0 = sets.querySelector('.set'), key0 = sets.querySelector('.key:not(.empty)');
+    var r = function (el) { if (!el) return 'lipsă'; var b = el.getBoundingClientRect(); return Math.round(b.width) + '×' + Math.round(b.height) + ' @' + Math.round(b.left) + ',' + Math.round(b.top); };
+    return [
+      'seturi în config: ' + (cfg ? cfg.sets.length : 'fără config') + ' · butoane: ' + (cfg ? cfg.sets.map(function (x) { return x.buttons.filter(Boolean).length; }).join('/') : '-'),
+      'seturi afișate: ' + sets.children.length + ' · taste în pagină: ' + sets.querySelectorAll('.key:not(.empty)').length,
+      'grilă: ' + r(sets) + ' · scroll ' + Math.round(sets.scrollLeft) + '/' + sets.scrollWidth,
+      'primul set: ' + r(set0) + ' · prima tastă: ' + r(key0),
+      'fereastră: ' + window.innerWidth + '×' + window.innerHeight + ' · set curent ' + ui.set + ' · pagină ' + (ui.page || '-') + ' · profil ' + (currentProfile() || '-'),
+      'erori: ' + (window.__bootErrors.length ? window.__bootErrors.join(' | ') : 'niciuna'),
+      navigator.userAgent,
+    ].join('\n');
+  }
+  function showDiag() {
+    var d = $('diag');
+    if (!d) {
+      d = document.createElement('pre'); d.id = 'diag';
+      d.style.cssText = 'position:fixed;left:8px;top:8px;right:170px;z-index:90;background:rgba(10,20,12,.95);color:#9fe8b1;border:1px solid #1e7a37;border-radius:10px;padding:10px;font:11px ui-monospace,Menlo,monospace;white-space:pre-wrap;margin:0;-webkit-user-select:text;user-select:text';
+      d.addEventListener('click', function () { d.remove(); });
+      document.body.appendChild(d);
+    }
+    d.textContent = 'DIAGNOSTIC (atinge ca să închizi)\n' + diagnostics();
+  }
+  if (/[?&]debug/.test(location.search)) setInterval(showDiag, 1000);
+  // dacă după încărcare nu se vede nicio tastă, afișăm automat diagnosticul
+  setTimeout(function check() {
+    if (!cfg) return setTimeout(check, 2000);
+    var k = $('sets').querySelector('.key:not(.empty)');
+    var b = k && k.getBoundingClientRect();
+    if (!ui.page && (!k || b.width < 5 || b.height < 5 || b.right < 0 || b.left > window.innerWidth)) showDiag();
+  }, 3500);
+  // apăsare lungă pe punctul de conexiune = diagnostic
+  bindPress($('status'), function () {}, function () { showDiag(); });
 
   // aplicație web instalabilă: se deschide instant și funcționează și când Mac-ul e oprit
   if ('serviceWorker' in navigator && window.isSecureContext) {

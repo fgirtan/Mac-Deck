@@ -101,7 +101,17 @@ button { font: inherit; color: inherit; }
 #rotate .g { width: 56px; height: 56px; color: var(--green); }
 #rotate p { margin: 0; font-size: 18px; }
 #rotate small { color: var(--dim); }
-@media (orientation: portrait) { #rotate { display: flex; } }
+/* telefon vertical: grila 3×5 sus, sliderele jos (mesajul de rotire nu mai blochează deck-ul) */
+@media (orientation: portrait) {
+  #main { flex-direction: column; }
+  #sliders { width: auto; height: 150px; flex: none; }
+  .key .lb { font-size: 10.5px; }
+  .am { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(3, 1fr); }
+  .sp, .sf { flex-direction: column; }
+  .sp-left, .sf-l { width: 100%; }
+  .pgrid.g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pgrid.g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 #toast { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translate(-50%, 40px); opacity: 0; z-index: 60;
   background: #0f2a17; border: 1px solid var(--green-dim); color: var(--text); padding: 9px 16px; border-radius: 999px; font-size: 13px; transition: all .2s ease; pointer-events: none; white-space: nowrap; }
@@ -224,3 +234,11 @@ body.offline #sets, body.offline #sliders { opacity: .4; filter: grayscale(.6); 
   padding: 7px 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; }
 #offline .dot { background: var(--red); animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
+
+/* dimensiuni explicite pentru Safari pe iOS (înălțimea grilei nu trebuie să depindă de calculul flex) */
+#main { top: 0; right: 0; bottom: 0; left: 0; height: 100%; }
+#deck { height: 100%; }
+#sets { flex: none; height: calc(100% - 18px); }
+.set { height: 100%; min-height: 0; }
+.key { min-height: 44px; }
+@media (orientation: portrait) { #deck { height: auto; flex: 1; } #sets { height: calc(100% - 18px); } }
